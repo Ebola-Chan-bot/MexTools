@@ -29,7 +29,7 @@ std::string 万能转码<std::string>(Array& 输入);
 //C++转MATLAB
 
 template <typename T>
-inline buffer_ptr_t<T> 万能转码(const T* 指针, UINT64 尺寸)noexcept
+inline buffer_ptr_t<T> 万能转码(const T* 指针, UINT64 尺寸)
 {
 	buffer_ptr_t<T>缓冲 = 数组工厂.createBuffer<T>(尺寸);
 	std::copy_n(指针, 尺寸, 缓冲.get());
@@ -66,6 +66,7 @@ inline CharArray 万能转码<CharArray>(const char* UTF8)
 class MexFunction :public Function
 {
 public:
+	//用户实现此方法作为MEX文件函数体
 	void operator()(ArgumentList& outputs, ArgumentList& inputs)override;
 };
 void 异常输出补全(ArgumentList& outputs);

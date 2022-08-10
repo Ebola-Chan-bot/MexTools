@@ -70,10 +70,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)include;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(SolutionDir)nuget\build\native\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <OutDir>$(SolutionDir)nuget\build\native\lib</OutDir>
+    <TargetName>$(ProjectName).$(PlatformToolset).$(Platform).$(Configuration)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)include;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(SolutionDir)nuget\build\native\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <OutDir>$(SolutionDir)nuget\build\native\lib\</OutDir>
+    <TargetName>$(ProjectName).$(PlatformToolset).$(Platform).$(Configuration)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -154,8 +158,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\nuget\build\native\include\Mex工具.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="include\Mex工具.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>

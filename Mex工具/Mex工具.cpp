@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "Mex工具.h"
+#include <Mex工具.h>
 ArrayFactory 数组工厂;
 template<>
 String 万能转码<String>(Array& 输入)

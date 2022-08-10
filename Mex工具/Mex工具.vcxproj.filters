@@ -21,7 +21,7 @@
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="include\Mex工具.h">
+    <ClInclude Include="..\nuget\build\native\include\Mex工具.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
