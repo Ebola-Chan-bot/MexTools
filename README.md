@@ -7,13 +7,16 @@ Mex工具.h公开接口
 extern ArrayFactory 数组工厂;
 template <typename T>
 concept 数值 = std::is_arithmetic<T>::value;
+
 //MATLAB转C++
+
 //一般标量转换
 template<typename T>
 inline T 万能转码(Array& 输入);
 //一般指针转换自uint64
 template <typename T>
 	requires std::is_pointer<T>::value
+//字符串转换
 inline T 万能转码(Array& 输入);
 template<>
 String 万能转码<String>(Array& 输入);
@@ -21,13 +24,18 @@ template<>
 CharArray 万能转码<CharArray>(Array& 输入);
 template<>
 std::string 万能转码<std::string>(Array& 输入);
+
 //C++转MATLAB
 
+//一般数组转换
 template <typename T>
 inline buffer_ptr_t<T> 万能转码(const T* 指针, UINT64 尺寸);
+//指针转uint64
 inline TypedArray<uint64_t>万能转码(const void*指针);
+//一般数值标量
 template <数值 T>
 inline TypedArray<T> 万能转码(T 输入);
+//字符串转换
 template<class T>
 requires std::_Is_any_of_v<T,String,MATLABString,CharArray>
 T 万能转码(const char*);
@@ -53,7 +61,7 @@ public:
 void 异常输出补全(ArgumentList& outputs);
 
 ```
-一个示例实现，用单个MEX文件实现一个OirReader类，通过CreateOirReader创建对象，DestroyOirReader销毁对象。该示例的完整代码[参见此处](https://github.com/Silver-Fang/Image5D)。
+一个示例实现，用单个MEX文件实现一个OirReader类，通过CreateOirReader创建对象，DestroyOirReader销毁对象。该示例的完整代码[参见此处](https://github.com/Silver-Fang/Image5D/blob/master/OirReaderMex/MexFunction.cpp)。
 ```C++
 API声明(CreateOirReader)
 {
