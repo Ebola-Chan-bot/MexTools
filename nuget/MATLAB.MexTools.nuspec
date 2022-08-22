@@ -12,6 +12,8 @@
 		<summary>使用本工具快速生成 MATLAB C++ MEX 数据API文件函数</summary>
 		<releaseNotes>
 			不要把NuGet打包脚本也包进去了
+			将Mex工具拆分出Mex类型和Mex实现，这样用户只需包含Mex类型或Mex工具即可编写Mex相关的动态链接库，而不必导出Mex实现接口；真正的Mex实现代码只需包含Mex实现。
+			更新接口文档和自述文件
 		</releaseNotes>
 	</metadata>
 	<!-- 不能指定files，否则只会包含files中的文件 -->
