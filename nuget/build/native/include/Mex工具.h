@@ -1,4 +1,5 @@
 #pragma once
+//常用的MEX工具函数
 #include <algorithm>
 #include <Mex类型.h>
 using namespace matlab::data;

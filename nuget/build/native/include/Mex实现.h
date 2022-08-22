@@ -1,4 +1,5 @@
 #pragma once
+//实现MEX文件函数必须包含本头文件
 #include <cppmex/detail/mexFunctionAdapterImpl.hpp>
 #include <Mex类型.h>
 //静态库函数必须“被使用”才能导出。dllexport和静态方法都不算被使用，一般方法会出现重定义错误，因此这里采用λ表达式赋给函数指针的方式
