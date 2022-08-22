@@ -1,9 +1,9 @@
 #pragma once
-#include <mexAdapter.hpp>
 #include <algorithm>
+#include <Mex类型.h>
 using namespace matlab::data;
 using namespace matlab::mex;
-extern ArrayFactory 数组工厂;
+static ArrayFactory 数组工厂;
 template <typename T>
 concept 数值 = std::is_arithmetic<T>::value;
 
@@ -67,13 +67,6 @@ inline CharArray 万能转码<CharArray>(const char* UTF8)
 {
 	return 数组工厂.createCharArray(万能转码<String>(UTF8));
 }
-
-class MexFunction :public Function
-{
-public:
-	//用户实现此方法作为MEX文件函数体
-	void operator()(ArgumentList& outputs, ArgumentList& inputs)override;
-};
 //增强功能，可以使用如下三个宏定义在一个MEX文件函数中定义多个API
 #define API声明(函数名) void 函数名(ArgumentList& outputs,ArgumentList& inputs)
 #define API索引 constexpr void (*(API[]))(ArgumentList&, ArgumentList&) =

@@ -24,6 +24,12 @@
     <ClInclude Include="..\nuget\build\native\include\Mex工具.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\nuget\build\native\include\Mex类型.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nuget\build\native\include\Mex实现.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Mex工具.cpp">
@@ -32,9 +38,18 @@
     <ClCompile Include="pch.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Mex实现.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Mex类型.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\libMatlabDataArray.lib" />
     <Library Include="lib\libmex.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
   </ItemGroup>
 </Project>
