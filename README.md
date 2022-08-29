@@ -54,6 +54,14 @@ CharArray 万能转码<CharArray>(Array& 输入);
 */
 template<>
 std::string 万能转码<std::string>(Array& 输入);
+/*
+* 将输入MATLAB字符串数组、字符向量或字符向量元胞数组转换为std::unique_ptr<std::string[]>
+* @param Array&& 输入MATLAB数组可以是字符串数组、字符向量或字符向量元胞数组
+* @return std::unique_ptr<std::string[]>，MATLAB字符是UTF16编码，将自动转换为UTF8返回
+* @throw InvalidArrayTypeException 输入不是字符串或字符向量
+*/
+template<>
+std::unique_ptr<std::string[]> 万能转码<std::unique_ptr<std::string[]>>(Array&& 输入);
 
 //C++转MATLAB
 
@@ -103,6 +111,20 @@ inline MATLABString 万能转码<MATLABString>(const char* UTF8);
 */
 template<>
 inline CharArray 万能转码<CharArray>(const char* UTF8);
+/*
+* 将输入多个std::string转换为StringArray，自动转换为UTF16编码
+* @param const std::string* 多个std::string指针
+* @param size_t 指针中有多少个字符串
+* @return StringArray，MATLAB字符串数组
+*/
+StringArray 万能转码(const std::string* UTF8, size_t 个数);
+/*
+* 将输入多个C样式字符串const char*转换为StringArray，自动转换为UTF16编码
+* @param const char* const* 多个C样式字符串指针
+* @param size_t 指针中有多少个字符串
+* @return StringArray，MATLAB字符串数组
+*/
+StringArray 万能转码(const char* const* UTF8, size_t 个数);
 //增强功能，可以使用如下三个宏定义在一个MEX文件函数中定义多个API
 
 #define API声明(函数名) void 函数名(ArgumentList& outputs,ArgumentList& inputs)
