@@ -10,7 +10,7 @@
 	</ItemDefinitionGroup>
 	<ItemDefinitionGroup>
 		<Link>
-			<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolset).$(Platform).$(Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>

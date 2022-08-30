@@ -72,12 +72,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExternalIncludePath>$(SolutionDir)nuget\build\native\include;$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(SolutionDir)nuget\build\native\lib\</OutDir>
-    <TargetName>$(ProjectName).$(PlatformToolset).$(Platform).$(Configuration)</TargetName>
+    <TargetName>$(ProjectName).$(Configuration)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExternalIncludePath>$(SolutionDir)nuget\build\native\include;$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(SolutionDir)nuget\build\native\lib\</OutDir>
-    <TargetName>$(ProjectName).$(PlatformToolset).$(Platform).$(Configuration)</TargetName>
+    <TargetName>$(ProjectName).$(Configuration)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
