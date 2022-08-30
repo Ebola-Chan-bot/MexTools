@@ -1,3 +1,5 @@
+本项目发布在 NuGet MATLAB.MexTools，GitHub上只有标签
+
 使用本工具快速生成 MATLAB C++ MEX 数据API文件函数。
 
 MATLAB C++ MEX 数据API文件函数本质上就是个实现了一套MEX标准接口的动态链接库，扩展名mexw64。你只需要在 Visual Studio 中新建一个C++动态链接库项目，将输出扩展名改为mexw64，包含【Mex实现.h】，然后实现其中声明的MexFunction::operator()，就可以生成出合法的MEX文件函数。
