@@ -51,5 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="..\nuget\build\native\MATLAB.MexTools.targets" />
+    <None Include="..\nuget\MATLAB.MexTools.nuspec" />
   </ItemGroup>
 </Project>
