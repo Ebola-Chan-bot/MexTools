@@ -131,7 +131,7 @@ StringArray 万能转码(const char* const* UTF8, size_t 个数);
 
 #define API声明(函数名) void 函数名(ArgumentList& outputs,ArgumentList& inputs)
 #define API索引 constexpr void (*(API[]))(ArgumentList&, ArgumentList&) =
-#define API调用 API[万能转码<UINT8>(inputs[0])](outputs, inputs);
+#define API调用 API[万能转码<uint8_t>(inputs[0])](outputs, inputs);
 //增强功能，可以返回一个异常值并补齐额外的输出值
 void 异常输出补全(ArgumentList& outputs);
 ```

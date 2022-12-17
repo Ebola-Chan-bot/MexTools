@@ -258,6 +258,7 @@
     <None Include="..\.gitignore" />
     <None Include="..\nuget\build\native\MATLAB.MexTools.targets" />
     <None Include="..\nuget\MATLAB.MexTools.nuspec" />
+    <None Include="..\README.md" />
     <None Include="cpp.hint" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
