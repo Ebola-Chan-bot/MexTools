@@ -1,5 +1,4 @@
-#include "pch.h"
-#include <Mex类型.h>
+#include "Mex类型.h"
 void mexHandleException(void (*callbackErrHandler)(const char*, const char*)) {
 	try {
 		throw;
