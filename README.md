@@ -209,3 +209,4 @@ namespace Mex工具
 	void 异常输出补全(ArgumentList& outputs);
 }
 ```
+某些计算机/编译器可能存在中文编码错误问题。你需要设置中文编码为UTF-8。对于 Windows 11，可以在任务栏搜索intl.cpl，转到【管理\非Unicode程序的语言\更改系统区域设置】，勾选【Beta版：使用 Unicode UTF-8 提供全球语言支持】
