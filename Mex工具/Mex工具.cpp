@@ -202,13 +202,13 @@ namespace Mex工具
 		类型包装器(Array&& 数组) :无类型数组(数组.getNumberOfElements() * sizeof(T)), 数组(std::move(数组)) {}
 		void 拷贝(void* 输出)const override
 		{
-			try
+			const TypedIterator<const T>迭代尾 = 数组.cend();
+			const uint64_t 高度 = 数组.getDimensions().front();
+			std::fill_n((T*)输出, 数组.getNumberOfElements(), 0);
+			for (TypedIterator<const T>a = 数组.cbegin(); a < 迭代尾; ++a)
 			{
-				std::copy(数组.cbegin(), 数组.cend(), (T*)输出);
-			}
-			catch (...)
-			{
-				throw 内存拷贝失败;
+				const SparseIndex 索引 = 数组.getIndex(a);
+				((T*)输出)[索引.first + 索引.second * 高度] = *a;
 			}
 		}
 	public:
