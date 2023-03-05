@@ -18,6 +18,7 @@
 		新增Mex工具：Mex异常、动态类型转静态、类型尺寸、动态类型选择模板、无类型缓冲、无类型数组
 		万能转码标量对POD类型可以自动转换类型
 		</releaseNotes>
+		<readme>README.md</readme>
 	</metadata>
 	<!-- 不能指定files，否则只会包含files中的文件 -->
 </package>
