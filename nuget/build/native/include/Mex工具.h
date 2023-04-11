@@ -11,6 +11,7 @@ namespace Mex工具
 		内存拷贝失败,
 		枚举类型不能拷贝,
 		不支持的类型
+		不支持的API,
 	};
 	namespace 内部
 	{
@@ -359,12 +360,22 @@ namespace Mex工具
 	* @return StringArray，MATLAB字符串数组
 	*/
 	StringArray 万能转码(const char* const* UTF8, size_t 个数);
+	/*
+	* 将C样式UTF16字符串转换为CharArray，可支持wchar_t*字符串强制转换
+	* @param UTF16，C样式UTF16字符串，以0结尾
+	* @return CharArray，MATLAB字符向量
+	*/
+	inline CharArray 万能转码(const char16_t* UTF16)
+	{
+		const uint64_t 字符个数 = wcslen((wchar_t*)UTF16);
+		return 数组工厂.createArrayFromBuffer({ 1,字符个数 }, 数组工厂.createBuffer<char16_t>(字符个数));
+	}
 
 	//增强功能，可以使用如下三个宏定义在一个MEX文件函数中定义多个API
 
 #define API声明(函数名) void 函数名(ArgumentList& outputs,ArgumentList& inputs)
 #define API索引 constexpr void (*(API[]))(ArgumentList&, ArgumentList&) =
-#define API调用 API[万能转码<uint8_t>(std::move(inputs[0]))](outputs, inputs);
+#define API调用 const uint8_t 选项=万能转码<uint8_t>(std::move(inputs[0]));if(选项<std::extent_v<decltype(API)>)API[选项](outputs, inputs);else throw 不支持的API;
 //增强功能，可以返回一个异常值并补齐额外的输出值
 	void 异常输出补全(ArgumentList& outputs);
 }
