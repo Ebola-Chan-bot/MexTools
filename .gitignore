@@ -361,3 +361,7 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+/MexW64Sample.pdb
+/MexW64Sample.lib
+/MexW64Sample.exp
+*.asv
