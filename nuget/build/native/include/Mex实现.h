@@ -10,9 +10,8 @@ static void (*导出列表)() = []()
 	mexFunctionAdapter(0, 0, 0, nullptr, nullptr, nullptr, nullptr);
 };
 using namespace matlab::mex;
-class MexFunction :public Function
+struct MexFunction :public Function
 {
-public:
-	//用户实现此方法作为MEX文件函数体
 	void operator()(ArgumentList& outputs, ArgumentList& inputs)override;
+	~MexFunction();
 };

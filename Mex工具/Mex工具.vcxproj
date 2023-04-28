@@ -99,21 +99,21 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <OutDir>$(SolutionDir)nuget\build\native\lib\</OutDir>
+    <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
-    <IncludePath>$(SolutionDir)nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <OutDir>$(SolutionDir)nuget\build\native\lib\</OutDir>
+    <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
-    <IncludePath>$(SolutionDir)nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release.GL|x64'">
     <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <OutDir>$(SolutionDir)nuget\build\native\lib\</OutDir>
+    <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(MSBuildVersion)</TargetName>
-    <IncludePath>$(SolutionDir)nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
