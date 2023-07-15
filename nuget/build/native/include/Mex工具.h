@@ -63,7 +63,7 @@ namespace Mex工具
 	concept 同类迭代器 = std::is_same_v<取迭代器值类型<T输入>, std::remove_cvref_t<T输出>>;
 	template <typename T>
 	concept 非const = !std::is_const_v<T>;
-	template<typename T1,typename T2>
+	template<typename T1, typename T2>
 	concept 只能是 = std::is_same_v<T1, T2>;
 	/*
 * 根据动态类型选择类模板并返回成员
@@ -272,7 +272,7 @@ namespace Mex工具
 			被加数 += 加数;
 		}
 		template<typename T输入, typename T输出>
-			requires requires(T输出& 输出, T输入 a) { (输出 + 2)[0] = (取迭代器值类型<T输出>)a; }
+			requires (!std::is_void_v<取迭代器值类型<T输出>>&& requires(T输出& 输出, T输入 a) { (输出 + 2)[0] = (取迭代器值类型<T输出>)a; })
 		struct 数组拷贝<SparseArray<T输入>, T输出>
 		{
 			static void 返回(Array&& 输入, T输出& 输出)
@@ -284,7 +284,7 @@ namespace Mex工具
 				for (TypedIterator<const T输入>a = 稀疏.cbegin(); a < 迭代尾; ++a)
 				{
 					const SparseIndex 索引 = 稀疏.getIndex(a);
-					输出[索引.first + 索引.second * 高度] = (取迭代器值类型<T输出>)*a;
+					输出[索引.first + 索引.second * 高度] = (取迭代器值类型<T输出>) * a;
 				}
 				选择性求和(输出, 稀疏.getNumberOfElements());
 			}
@@ -988,7 +988,7 @@ namespace Mex工具
 	# 返回值
 	StringArray，MATLAB UTF16 字符串数组
 	*/
-	template<只能是<StringArray>T输出 = StringArray,同类迭代器<std::string> T>
+	template<只能是<StringArray>T输出 = StringArray, 同类迭代器<std::string> T>
 		requires 非const<T>
 	StringArray 万能转码(T& 输入, const ArrayDimensions& 各维尺寸)
 	{
@@ -1015,7 +1015,7 @@ namespace Mex工具
 	# 返回值
 	StringArray，MATLAB UTF16 字符串数组
 	*/
-	template<只能是<StringArray>T输出=StringArray,同类迭代器<std::string> T>
+	template<只能是<StringArray>T输出 = StringArray, 同类迭代器<std::string> T>
 	inline StringArray 万能转码(T&& 输入, const ArrayDimensions& 各维尺寸)
 	{
 		return 万能转码(输入, 各维尺寸);
