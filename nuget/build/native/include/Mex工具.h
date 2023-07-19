@@ -50,7 +50,7 @@ namespace Mex工具
 	template<typename T输出, typename T输入>
 	concept 隐写迭代器 = requires(T输入 输入, T输出 输出) { *(输出 + 1) = 输入; };
 	template<typename T输出, typename T输入>
-	concept 可写迭代器 = requires(T输入 输入, T输出 输出) { *(输出 + 1) = (取迭代器值类型<T输出>)std::move(输入); };
+	concept 可写迭代器 = requires(T输入 输入, T输出 输出) { *(输出 + 1) = (取迭代器值类型<T输出>)输入; };
 	template<typename T输出, typename T输入>
 	concept 显写迭代器 = 可写迭代器<T输出, T输入> && !隐写迭代器<T输出, T输入>;
 	template<typename T输入, typename T输出>
@@ -180,13 +180,13 @@ namespace Mex工具
 		template<int...T>
 		constexpr std::array<uint8_t, sizeof...(T)> 类型尺寸<std::integer_sequence<int, T...>> = { sizeof(动态类型转静态<ArrayType(T)>)... };
 		/*
-		转换结构，用作【动态类型选择模板】的模板参数。此转换结构提供一个一般实现和两个特化实现，都有一个【static 输出 返回(Array&& 数组)】成员。注意返回成员的类型跟模板参数【输出】有关，因为输出属于后续模板参数，而【动态类型选择模板】仅要求第一个模板参数不能与返回成员类型有关。因此这里的返回成员可以跟输出类型有关，而不能跟输入类型有关。
+		转换结构，用作【动态类型选择模板】的模板参数。此转换结构提供一个一般实现和两个特化实现，都有一个【static 输出 返回(const Array& 数组)】成员。注意返回成员的类型跟模板参数【输出】有关，因为输出属于后续模板参数，而【动态类型选择模板】仅要求第一个模板参数不能与返回成员类型有关。因此这里的返回成员可以跟输出类型有关，而不能跟输入类型有关。
 		对一般的输入输出，我们认为它不是有效的类型转换，应当抛异常。
 		*/
 		template<typename 输入, typename 输出>
 		struct 转换结构
 		{
-			static 输出 返回(Array&& 数组)
+			static 输出 返回(const Array& 数组)
 			{
 				throw 类型转换失败;
 			}
@@ -201,7 +201,7 @@ namespace Mex工具
 			requires 可转换<T输入, T输出>
 		struct 转换结构<T输入, T输出>
 		{
-			static T输出 返回(Array&& 数组)
+			static T输出 返回(const Array& 数组)
 			{
 				return (T输出)(T输入)TypedArray<T输入>(数组)[0];
 			}
@@ -211,7 +211,7 @@ namespace Mex工具
 			requires 可转换<T输入, T输出>
 		struct 转换结构<SparseArray<T输入>, T输出>
 		{
-			static T输出 返回(Array&& 数组)
+			static T输出 返回(const Array&数组)
 			{
 				return (T输出)(T输入)SparseArray<T输入>(数组)[0];
 			}
@@ -220,25 +220,25 @@ namespace Mex工具
 		template<typename T输入, typename T输出>
 		struct 数组拷贝
 		{
-			static void 返回(Array&& 输入, T输出& 输出)
+			static void 返回(const Array& 输入, T输出& 输出)
 			{
 				throw 类型转换失败;
 			}
 		};
 		template<typename T>
-		inline void 选择性赋值(const T&& 输入, const T& 输出) {}
+		inline void 选择性赋值(const T& 输入, const T& 输出) {}
 		template<typename T>
-			requires requires(const T&& 输入, T& 输出) { 输出 = 输入; }
-		inline void 选择性赋值(const T&& 输入, T& 输出)
+			requires requires(const T& 输入, T& 输出) { 输出 = 输入; }
+		inline void 选择性赋值(const T& 输入, T& 输出)
 		{
 			输出 = 输入;
 		}
 		template<MATLAB简单元素 T输入, 隐写迭代器<T输入> T输出>
 		struct 数组拷贝<T输入, T输出&>
 		{
-			static void 返回(Array&& 输入, T输出& 输出)
+			static void 返回(const Array& 输入, T输出& 输出)
 			{
-				const TypedArray<T输入>类型化(std::move(输入));
+				const TypedArray<T输入>类型化(输入);
 				选择性赋值(std::copy(类型化.cbegin(), 类型化.cend(), 输出), 输出);
 			}
 		};
@@ -246,21 +246,21 @@ namespace Mex工具
 			requires MATLAB复杂元素<T输入>&& 可写迭代器<T输出, T输入> || 显写迭代器<T输出, T输入>
 		struct 数组拷贝<T输入, T输出&>
 		{
-			static void 返回(Array&& 输入, T输出& 输出)
+			static void 返回(const Array& 输入, T输出& 输出)
 			{
-				const TypedArray<T输入>类型化(std::move(输入));
-				for (T输入&& a : 类型化)
-					*(输出++) = (取迭代器值类型<T输出>)std::move(a);
+				const TypedArray<T输入>类型化(输入);
+				for (const T输入& a : 类型化)
+					*(输出++) = (取迭代器值类型<T输出>)a;
 			}
 		};
 		template<typename T输入, typename T输出>
 			requires MATLAB复杂元素<T输入>&& 可写迭代器<T输出, T输入> || 显写迭代器<T输出, T输入>
 		struct 数组拷贝<T输入, const T输出&>
 		{
-			static void 返回(Array&& 输入, const T输出& 输出)
+			static void 返回(const Array& 输入, const T输出& 输出)
 			{
 				T输出 拷贝 = 输出;
-				数组拷贝<T输入, T输出&>::返回(std::move(输入), 拷贝);
+				数组拷贝<T输入, T输出&>::返回(输入, 拷贝);
 			}
 		};
 		template<typename T被加数, typename T加数>
@@ -275,9 +275,9 @@ namespace Mex工具
 			requires (!std::is_void_v<取迭代器值类型<T输出>>&& requires(T输出& 输出, T输入 a) { (输出 + 2)[0] = (取迭代器值类型<T输出>)a; })
 		struct 数组拷贝<SparseArray<T输入>, T输出>
 		{
-			static void 返回(Array&& 输入, T输出& 输出)
+			static void 返回(const Array& 输入, T输出& 输出)
 			{
-				const SparseArray<T输入>稀疏(std::move(输入));
+				const SparseArray<T输入>稀疏(输入);
 				const TypedIterator<const T输入>迭代尾 = 稀疏.cend();
 				const size_t 高度 = 稀疏.getDimensions().front();
 				std::fill_n(输出, 稀疏.getNumberOfElements(), 0);
@@ -306,10 +306,10 @@ namespace Mex工具
 			requires (!std::is_void_v<T输入>&& std::is_same_v<std::remove_cvref<T输出>, void*>)
 		struct 数组拷贝<T输入, T输出&>
 		{
-			static void 返回(Array&& 输入, T输出& 输出)
+			static void 返回(const Array& 输入, T输出& 输出)
 			{
 				using 转指针 = std::_Copy_cv<T输出, 去Sparse<T输入>*&>;
-				数组拷贝<T输入, 转指针>::返回(std::move(输入), (转指针)输出);
+				数组拷贝<T输入, 转指针>::返回(输入, (转指针)输出);
 			}
 		};
 		template<typename T>
@@ -401,71 +401,70 @@ namespace Mex工具
 
 	/*
 	将MATLAB简单类型标量转换为C++类型，自动执行必要的显式转换，还支持MATLAB稀疏矩阵。
-	语法：Mex工具::万能转码<T>(std::move(输入))
+	语法：Mex工具::万能转码<T>(输入)
 	此函数支持以下转换：
 	- 整数和浮点类型互转，遵循C++转换规则
 	- MATLAB数值类型转复数（std::complex）
 	- 整数转任意类型指针
 	# 参数
 	typename T，转换目标类型，支持所有可从MATLAB简单元素类型显式转换而来的类型
-	Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
+	const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<typename T>
-		requires (!std::is_same_v<T, CellArray>)
-	inline T 万能转码(Array&& 输入)
+		requires (!std::_Is_any_of_v<T, CellArray,std::string>)
+	inline T 万能转码(const Array& 输入)
 	{
-		return 动态类型选择模板<内部::转换结构, T>(输入.getType())(std::move(输入));
+		return 动态类型选择模板<内部::转换结构, T>(输入.getType())(输入);
 	}
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 String（std::u16string）
-	语法：Mex工具::万能转码<String>(std::move(输入))
+	语法：Mex工具::万能转码<String>(输入)
 	# 参数
-	Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
+	const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern String 万能转码<String>(Array&& 输入);
+	extern String 万能转码<String>(const Array& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 MATLABString
-	语法：Mex工具::万能转码<MATLABString>(std::move(输入))
-	参数：Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
+	语法：Mex工具::万能转码<MATLABString>(输入)
+	参数：const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern MATLABString 万能转码<MATLABString>(Array&& 输入);
+	extern MATLABString 万能转码<MATLABString>(const Array& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 CharArray
-	语法：Mex工具::万能转码<CharArray>(std::move(输入))
-	参数：Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
+	语法：Mex工具::万能转码<CharArray>(输入)
+	参数：const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern CharArray 万能转码<CharArray>(Array&& 输入);
+	extern CharArray 万能转码<CharArray>(const Array& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF8 std::string，使用 Win32 WideCharToMultiByte 执行UTF16到UTF8的转码
-	语法：Mex工具::万能转码<std::string>(std::move(输入))
+	语法：Mex工具::万能转码(std::move(输入))
 	参数：Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
 	*/
-	template<>
-	extern std::string 万能转码<std::string>(Array&& 输入);
+	std::string 万能转码(Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串数组或字符行向量元胞数组转换为 UTF16 StringArray。字符行向量将转换为字符串标量，字符串数组和字符行向量元胞数组将转换为各维尺寸相同的字符串数组。
-	语法：Mex工具::万能转码<StringArray>(std::move(输入))
-	参数：Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
+	语法：Mex工具::万能转码<StringArray>(输入)
+	参数：const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern StringArray 万能转码<StringArray>(Array&& 输入);
+	extern StringArray 万能转码<StringArray>(const Array& 输入);
 	/*
 	将C++类型转换为对应的MATLAB标量，执行必要的显式转换
-	语法：Mex工具::万能转码<T输出>(std::move(输入));
+	语法：Mex工具::万能转码<T输出>(输入);
 	# 参数
 	typename T输出，目标MATLAB数组类型。
-	T输入&& 输入，可显式转换为MATLAB支持类型的输入值。例如，所有指针类型都能显式转换为MATLAB整数标量。对于简单类型，可以省略std::move。对于复杂类型，原输入值将不再可用。
+	const T输入& 输入，可显式转换为MATLAB支持类型的输入值。例如，所有指针类型都能显式转换为MATLAB整数标量。
 	# 返回
 	T输出，MATLAB简单标量
 	*/
 	template<typename T输出, typename T输入>
-		requires requires(T输入&& 输入) { 数组工厂.createScalar(数组类型转元素<T输出>(std::move(输入))); }
-	inline T输出 万能转码(T输入&& 输入)
+		requires requires(const T输入& 输入) { 数组工厂.createScalar(数组类型转元素<T输出>(输入)); }
+	inline T输出 万能转码(const T输入& 输入)
 	{
-		return 数组工厂.createScalar(数组类型转元素<T输出>(std::move(输入)));
+		return 数组工厂.createScalar(数组类型转元素<T输出>(输入));
 	}
 	/*
 	将C++简单类型转换为对应的MATLAB简单标量，不执行转换
@@ -480,15 +479,15 @@ namespace Mex工具
 	}
 	/*
 	将C++复杂类型转换为对应的MATLAB复杂标量，执行移动构造
-	语法：Mex工具::万能转码(std::move(输入));
-	参数：T&& 输入，MATLAB复杂类型的输入值，必须使用std::move，那之后原输入值将不再可用
+	语法：Mex工具::万能转码(输入);
+	参数：const T& 输入，MATLAB复杂类型的输入值
 	返回：MATLAB复杂类型标量
 	*/
 	template<MATLAB复杂元素 T>
 		requires CanCreateScalar<T>
-	inline TypedArray<T>万能转码(T&& 输入)
+	inline TypedArray<T>万能转码(const T& 输入)
 	{
-		return 数组工厂.createScalar(std::move(输入));
+		return 数组工厂.createScalar(输入);
 	}
 	/*
 	将任意指针类型转换为 MATLAB size_t 标量
@@ -502,16 +501,16 @@ namespace Mex工具
 	}
 	/*
 	将任意MATLAB数组包装成元胞标量
-	语法：Mex工具::万能转码(std::move(输入));
-	参数：Array&& 输入，要包装的MATLAB数组。包入后，原输入数组将不再可用。
+	语法：Mex工具::万能转码(输入);
+	参数：const Array& 输入，要包装的MATLAB数组。
 	返回：CellArray，包装了输入数组的元胞标量
 	*/
 	template<typename T = CellArray>
 		requires std::is_same_v<T, CellArray>
-	inline CellArray 万能转码(Array&& 输入)
+	inline CellArray 万能转码(const Array& 输入)
 	{
 		CellArray 输出 = 数组工厂.createCellArray({ 1 });
-		输出[0] = std::move(输入);
+		输出[0] = 输入;
 		return 输出;
 	}
 	/*
@@ -630,34 +629,34 @@ namespace Mex工具
 	}
 	/*
 	将MATLAB简单数组拷贝到C++迭代器或指针。这里的指针指的是定义了[]索引, ++自增和*解引用运算符的任何类型；迭代器类似于指针，但不需要定义[]索引。从满数组，可以拷贝到迭代器；从稀疏矩阵，可以拷贝到指针。输出的数据类型必须能够从输入类型隐式转换。一个反例是，整数类型不能隐式转换为指针类型，因此接受指针的迭代器不能在此处使用。从任意数组可以拷贝到void*，不会进行任何类型转换或解析，直接拷贝原始字节。
-	语法：Mex工具::万能转码(std::move(输入),输出);
+	语法：Mex工具::万能转码(输入,输出);
 	# 参数
-	Array&& 输入，MATLAB数组右值引用。函数返回后，输入数组将不再可用。
+	const Array& 输入，MATLAB数组。
 	T& 输出，输出迭代器或指针。对于稀疏矩阵，只能输出到指针（定义[]索引操作）；对于满矩阵，可以输出到迭代器。无论哪种，都可以输出到void*。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
 	*/
 	template<非const T>
-	inline void 万能转码(Array&& 输入, T& 输出)
+	inline void 万能转码(const Array& 输入, T& 输出)
 	{
-		动态类型选择模板<内部::数组拷贝, T&>(输入.getType())(std::move(输入), 输出);
+		动态类型选择模板<内部::数组拷贝, T&>(输入.getType())(输入, 输出);
 	}
 	/*
 	将MATLAB简单数组拷贝到C++迭代器或指针。这里的指针指的是定义了[]索引, ++自增和*解引用运算符的任何类型；迭代器类似于指针，但不需要定义[]索引。从满数组，可以拷贝到迭代器；从稀疏矩阵，可以拷贝到指针。输出的数据类型必须能够从输入类型隐式转换。一个反例是，整数类型不能隐式转换为指针类型，因此接受指针的迭代器不能在此处使用。从任意数组可以拷贝到void*，不会进行任何类型转换或解析，直接拷贝原始字节。
-	语法：Mex工具::万能转码(std::move(输入),输出);
+	语法：Mex工具::万能转码(输入,输出);
 	# 参数
-	Array&& 输入，MATLAB数组右值引用。函数返回后，输入数组将不再可用。
+	const Array& 输入，MATLAB数组。
 	T&& 输出，输出迭代器或指针。对于稀疏矩阵，只能输出到指针（定义[]索引操作）；对于满矩阵，可以输出到迭代器。无论哪种，都可以输出到void*。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
 	*/
 	template<typename T>
 		requires (!(同类迭代器<T, wchar_t> || 同类迭代器<T, std::string> || 同类迭代器<T, char>))
-	inline void 万能转码(Array&& 输入, T&& 输出)
+	inline void 万能转码(const Array& 输入, T&& 输出)
 	{
-		动态类型选择模板<内部::数组拷贝, const T&>(输入.getType())(std::move(输入), 输出);
+		动态类型选择模板<内部::数组拷贝, const T&>(输入.getType())(输入, 输出);
 	}
 	/*
 	将 MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量拷出为C样式0结尾的 UTF8 char*
 	语法：Mex工具::万能转码(std::move(输入),输出)
 	# 参数
-	Array&& 输入，MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量。函数返回后，输入数组将不再可用。
+	Array&& 输入，MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量。此函数返回后，输入数组将变成不可用。
 	char*const& 输出，应确保有足够大的内存分配，输出的C样式字符串将以0结尾。
 	# 返回值
 	int，输出的UTF8字节数，包括尾随0
@@ -667,7 +666,7 @@ namespace Mex工具
 	将 MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量拷出为C样式0结尾的 UTF8 char*
 	语法：Mex工具::万能转码(std::move(输入),输出)
 	# 参数
-	Array&& 输入，MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量。函数返回后，输入数组将不再可用。
+	Array&& 输入，MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量。此函数返回后，输入数组将变成不可用。
 	char*& 输出，应确保有足够大的内存分配，输出的C样式字符串将以0结尾。函数返回后，此指针将指向输出序列的末尾。
 	# 返回值
 	int，输出的UTF8字节数，包括尾随0
@@ -680,31 +679,31 @@ namespace Mex工具
 	}
 	/*
 	将MATLAB字符行向量、字符串标量或字符向量元胞标量拷出到接受wchar_t的迭代器，例如wchar_t*
-	语法：Mex工具::万能转码(std::move(输入),输出)
+	语法：Mex工具::万能转码(输入,输出)
 	# 参数
-	Array&& 输入，MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量。函数返回后，输入数组将不再可用。
-	隐写迭代器<wchar_t> T& 输出迭代器，应接受wchar_t输入，确保有足够大的内存分配。输出的字符串不会在结尾加0。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
+	const Array& 输入，MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量。
+	同类迭代器<wchar_t> T& 输出迭代器，应接受wchar_t输入，确保有足够大的内存分配。输出的字符串不会在结尾加0。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
 	*/
 	template<同类迭代器<wchar_t> T>
-	void 万能转码(Array&& 输入, T& 输出)
+	void 万能转码(const Array& 输入, T& 输出)
 	{
 		switch (输入.getType())
 		{
 		case ArrayType::CHAR:
 		{
-			const CharArray 字符串(std::move(输入));
+			const CharArray 字符串(输入);
 			内部::选择性赋值(std::copy(字符串.cbegin(), 字符串.cend(), 输出), 输出);
 		}
 		break;
 		case ArrayType::MATLAB_STRING:
 		{
-			const String 字符串(StringArray(std::move(输入))[0]);
+			const String 字符串(StringArray(输入)[0]);
 			内部::选择性赋值(std::copy(字符串.cbegin(), 字符串.cend(), 输出), 输出);
 		}
 		break;
 		case ArrayType::CELL:
 		{
-			const CharArray 字符串(Array(CellArray(std::move(输入))[0]));
+			const CharArray 字符串(Array(CellArray(输入)[0]));
 			内部::选择性赋值(std::copy(字符串.cbegin(), 字符串.cend(), 输出), 输出);
 		}
 		break;
@@ -714,21 +713,21 @@ namespace Mex工具
 	}
 	/*
 	将MATLAB字符行向量、字符串标量或字符向量元胞标量拷出到接受wchar_t的迭代器，例如wchar_t*
-	语法：Mex工具::万能转码(std::move(输入),输出)
+	语法：Mex工具::万能转码(输入,输出)
 	# 参数
-	Array&& 输入，MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量。函数返回后，输入数组将不再可用。
-	隐写迭代器<wchar_t> T&& 输出迭代器，应接受wchar_t输入，确保有足够大的内存分配。输出的字符串不会在结尾加0。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
+	const Array& 输入，MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量。
+	同类迭代器<wchar_t> T&& 输出迭代器，应接受wchar_t输入，确保有足够大的内存分配。输出的字符串不会在结尾加0。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
 	*/
 	template<同类迭代器<wchar_t> T>
-	inline void 万能转码(Array&& 输入, T&& 输出)
+	inline void 万能转码(const Array& 输入, T&& 输出)
 	{
-		万能转码(std::move(输入), (const T&)输出);
+		万能转码(输入, (const T&)输出);
 	}
 	/*
 	将 MATLAB UTF16 字符行向量、字符串数组或字符向量元胞数组拷出到接受 UTF8 std::string 的迭代器
 	语法：Mex工具::万能转码(std::move(输入),输出)
 	# 参数
-	Array&& 输入，MATLAB UTF16 字符行向量、字符串数组或字符向量元胞数组。函数返回后，输入数组将不再可用。
+	Array&& 输入，MATLAB UTF16 字符行向量、字符串数组或字符向量元胞数组。函数返回后，输入数组将变成不可用。
 	同类迭代器<std::string> T& 输出迭代器，应接受std::string输入，确保有足够大的内存分配。函数返回后，输出迭代器将被指向输出序列的末尾。
 	*/
 	template<同类迭代器<std::string> T>
@@ -748,7 +747,7 @@ namespace Mex工具
 		}
 		break;
 		case ArrayType::MATLAB_STRING:
-			for (const String& 字符串 : StringArray(std::move(输入)))
+			for (const String& 字符串 : StringArray(输入))
 				输出++->resize_and_overwrite(字符串.size() * 3 + 1, [&字符串](char* 指针, size_t 尺寸)
 					{
 						return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.c_str(), -1, 指针, 尺寸, nullptr, nullptr) - 1;
@@ -773,7 +772,7 @@ namespace Mex工具
 	将 MATLAB UTF16 字符行向量、字符串数组或字符向量元胞数组拷出到接受 UTF8 std::string 的迭代器
 	语法：Mex工具::万能转码(std::move(输入),输出)
 	# 参数
-	Array&& 输入，MATLAB UTF16 字符行向量、字符串数组或字符向量元胞数组。函数返回后，输入数组将不再可用。
+	Array&& 输入，MATLAB UTF16 字符行向量、字符串数组或字符向量元胞数组。函数返回后，输入数组将变成不可用。
 	同类迭代器<std::string> const T&& 输出迭代器，应接受std::string输入，确保有足够大的内存分配。
 	*/
 	template<同类迭代器<std::string> T>

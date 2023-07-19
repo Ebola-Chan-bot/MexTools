@@ -8,3 +8,17 @@
 #include "cppmex/detail/mexIOAdapterImpl.hpp"
 #include "cppmex/detail/mexFutureImpl.hpp"
 #include "cppmex/detail/mexTaskReferenceImpl.hpp"
+namespace matlab 
+{
+    namespace data
+    {
+        template<>
+        struct GetArrayType<std::enable_if_t<sizeof(long) == sizeof(int32_t), long>> { static const ArrayType type = ArrayType::INT32; };
+        template<>
+        struct GetArrayType<std::enable_if_t<sizeof(long) == sizeof(int64_t), long>> { static const ArrayType type = ArrayType::INT64; };
+        template<>
+        struct GetArrayType<std::enable_if_t<sizeof(unsigned long) == sizeof(uint32_t), unsigned long>> { static const ArrayType type = ArrayType::UINT32; };
+        template<>
+        struct GetArrayType<std::enable_if_t<sizeof(unsigned long) == sizeof(uint64_t), unsigned long>> { static const ArrayType type = ArrayType::UINT64; };
+    }
+}
