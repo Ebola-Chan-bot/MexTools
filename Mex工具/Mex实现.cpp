@@ -3,7 +3,7 @@
 #include "cppmex/detail/mexExceptionImpl.hpp"
 void* mexCreateMexFunction(void (*callbackErrHandler)(const char*, const char*)) {
 	try {
-		matlab::mex::Function* mexFunc = mexCreatorUtil<MexFunction>();
+		matlab::mex::Function* mexFunc = 函数对象;
 		return mexFunc;
 	}
 	catch (...) {

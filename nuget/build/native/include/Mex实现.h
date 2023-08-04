@@ -9,9 +9,18 @@ static void (*导出列表)() = []()
 	mexDestroyMexFunction(nullptr, nullptr);
 	mexFunctionAdapter(0, 0, 0, nullptr, nullptr, nullptr, nullptr);
 };
+//用户必须用new创建此对象指针
+extern matlab::mex::Function* const 函数对象;
+/*
+matlab::mex::Function是MEX文件函数必须实现的接口。用户应当定义一个子类继承之，并重写其operator()。例：
+```
 using namespace matlab::mex;
-struct MexFunction :public Function
+struct MexFunction :public Function //必须命名为MexFunction，public继承Function
 {
-	void operator()(ArgumentList& outputs, ArgumentList& inputs)override;
-	~MexFunction();
+	MexFunction(); //此方法可选，用于初始化，不能有任何参数输入
+	void operator()(ArgumentList& outputs, ArgumentList& inputs)override; //必须定义此方法
+	virtual ~MexFunction(); //此方法可选，用于 clear mex 时释放资源，必须虚析构
 };
+Function* const 函数对象 = new MexFunction(); //必须用new创建此对象指针，因为 clear mex 时将用delete析构
+```
+*/
