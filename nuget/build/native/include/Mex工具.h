@@ -32,9 +32,9 @@ namespace Mex工具
 	template<MATLAB元素类型 T>
 	constexpr bool 稀疏<SparseArray<T>> = true;
 	template<typename T>
-	concept MATLAB复杂元素 = std::_Is_any_of_v<std::remove_cvref_t<T>, Array, Struct, MATLABString, Object, Enumeration> && !稀疏<T>;
+	concept MATLAB复杂元素 = std::_Is_any_of_v<std::remove_cvref_t<T>, Array, Struct, MATLABString, Object> && !稀疏<T>;
 	template<typename T>
-	concept MATLAB简单元素 = MATLAB元素类型<T> && !(MATLAB复杂元素<T> || 稀疏<T>);
+	concept MATLAB简单元素 = MATLAB元素类型<T> && !(MATLAB复杂元素<T> || 稀疏<T> || std::is_same_v<T, Enumeration>);
 	template<typename T>
 	concept 迭代器 = requires(T 器) { *(器 + 1); };
 	template<迭代器 T>
@@ -303,7 +303,7 @@ namespace Mex工具
 		using 去Sparse = 去Sparse_s<T>::元素;
 		//void*特化用来处理用户不关心数组具体类型的情况
 		template<typename T输入, typename T输出>
-			requires (!std::is_void_v<T输入>&& std::is_same_v<std::remove_cvref<T输出>, void*>)
+			requires (!std::is_void_v<T输入>&& std::is_same_v<std::remove_cvref_t<T输出>, void*>)
 		struct 数组拷贝<T输入, T输出&>
 		{
 			static void 返回(const Array& 输入, T输出& 输出)
