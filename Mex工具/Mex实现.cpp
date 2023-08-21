@@ -1,9 +1,10 @@
 #include "Mex实现.h"
 #include "cppmex/detail/mexErrorDispatch.hpp"
 #include "cppmex/detail/mexExceptionImpl.hpp"
+#include "Mex工具.h"
 void* mexCreateMexFunction(void (*callbackErrHandler)(const char*, const char*)) {
 	try {
-		matlab::mex::Function* mexFunc = 函数对象;
+		matlab::mex::Function* mexFunc = 创建Mex函数();
 		return mexFunc;
 	}
 	catch (...) {
@@ -11,11 +12,23 @@ void* mexCreateMexFunction(void (*callbackErrHandler)(const char*, const char*))
 		return nullptr;
 	}
 }
+std::unordered_map<void*, void(*)(void*)>Mex工具::内部::自动析构表;
+void 安全自动析构()noexcept
+{
+	for (const std::pair<void*, void(*)(void*)> 析构 : Mex工具::内部::自动析构表)
+		__try
+	{		
+		析构.second(析构.first);	
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) {}
+}
 void mexDestroyMexFunction(void* mexFunc,
 	void (*callbackErrHandler)(const char*, const char*)) {
 	matlab::mex::Function* mexFunction = reinterpret_cast<matlab::mex::Function*>(mexFunc);
 	try {
-		mexDestructorUtil(mexFunction);
+		安全自动析构();
+		//Mex函数本身必须是最后一个被析构的，因此不能放在自动析构表里
+		销毁Mex函数(mexFunction);
 	}
 	catch (...) {
 		mexHandleException(callbackErrHandler);

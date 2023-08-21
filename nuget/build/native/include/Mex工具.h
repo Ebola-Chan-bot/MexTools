@@ -362,6 +362,7 @@ namespace Mex工具
 			for (T输出& a : 输出)
 				a = (T输出) * (输入++);
 		}
+		extern std::unordered_map<void*, void(*)(void*)>自动析构表;
 	}
 	//此using在将动态类型枚举ArrayType转为静态类型
 	template<ArrayType T>
@@ -1044,4 +1045,21 @@ namespace Mex工具
 	protected:
 		动态类型缓冲(void* 指针, size_t 字节数) :指针(指针), 字节数(字节数) {}
 	};
+	//将对象指针加入自动析构表。clear mex 时此指针将被自动delete。只能对new创建的对象指针使用此方法。
+	template<typename T>
+	inline void 自动析构(T* 对象指针)noexcept
+	{
+		内部::自动析构表[对象指针] = [](void* 指针) {delete (T*)指针; };
+	}
+	//将对象指针加入自动析构表。clear mex 时此对象将被自动析构。使用指定的删除器。
+	template<typename T>
+	inline void 自动析构(T* 对象指针, void(*删除器)(T*))noexcept
+	{
+		内部::自动析构表[对象指针] = (void(*)(void*))删除器;
+	}
+	//指示此对象已被手动析构，可从自动析构表中移除。
+	inline void 手动析构(void* 对象指针)noexcept
+	{
+		内部::自动析构表.erase(对象指针);
+	}
 }
