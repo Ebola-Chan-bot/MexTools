@@ -157,11 +157,13 @@ namespace Mex工具
 		}
 	}
 	template<typename T>
-	class 有类型缓冲 :public 动态类型缓冲
+	struct 有类型缓冲 :public 动态类型缓冲
 	{
+		有类型缓冲(buffer_ptr_t<T>&& 缓冲, uint64_t 元素数) :动态类型缓冲(缓冲.get(), 元素数 * sizeof(T)), 缓冲(std::move(缓冲)), 元素数(元素数) {}
+		virtual ~有类型缓冲() {}
+	protected:
 		buffer_ptr_t<T>缓冲;
 		const uint64_t 元素数;
-		有类型缓冲(buffer_ptr_t<T>&& 缓冲, uint64_t 元素数) :动态类型缓冲(缓冲.get(), 元素数 * sizeof(T)), 缓冲(std::move(缓冲)), 元素数(元素数) {}
 		Array 打包(ArrayDimensions 各维尺寸)noexcept override
 		{
 			return 数组工厂.createArrayFromBuffer(各维尺寸, std::move(缓冲));
@@ -170,78 +172,47 @@ namespace Mex工具
 		{
 			return 打包({ 元素数,1 });
 		}
-	public:
-		virtual ~有类型缓冲() {}
+	};
+	template<typename T>
+	struct 有类型缓冲创建器
+	{
+		static std::unique_ptr<动态类型缓冲>返回(uint64_t 元素数)
+		{
+			throw 不支持的类型;
+		}
+	};
+	template<typename T>
+	struct 有类型缓冲读取器
+	{
+		static std::unique_ptr<动态类型缓冲>返回(Array&& 数组)
+		{
+			throw 不支持的类型;
+		}
+	};
+	template<MATLAB简单元素 T>
+	struct 有类型缓冲创建器<T>
+	{
 		static std::unique_ptr<动态类型缓冲>返回(uint64_t 元素数)
 		{
 			return std::unique_ptr<动态类型缓冲>(new 有类型缓冲<T>(数组工厂.createBuffer<T>(元素数), 元素数));
 		}
 	};
-	template<typename T>
-	inline bool 不为零(T 数值)
+	template<MATLAB简单元素 T>
+	struct 有类型缓冲读取器<T>
 	{
-		return 数值;
-	}
-	template<>
-	inline bool 不为零<std::complex<double>>(std::complex<double>数值)
-	{
-		return 数值 != std::complex<double>(0);
-	}
-	using T = double;
-	//template<typename T>
-	template<>
-	class 有类型缓冲<SparseArray<T>> :public 动态类型缓冲
-	{
-		buffer_ptr_t<T>缓冲;
-		const size_t 元素数;
-		有类型缓冲(buffer_ptr_t<T>&& 缓冲, size_t 元素数) :动态类型缓冲(缓冲.get(), 元素数 * sizeof(T)), 缓冲(std::move(缓冲)), 元素数(元素数) {}
-		Array 打包(ArrayDimensions 各维尺寸)noexcept override
+		static std::unique_ptr<动态类型缓冲>返回(Array&& 数组)
 		{
-			struct 非零项
-			{
-				T 值;
-				size_t 位置;
-			};
-			std::vector<非零项> 值列表;
-			for (size_t a = 0; a < 元素数; ++a)
-				if (不为零(缓冲[a])) [[unlikely]]
-					值列表.emplace_back(缓冲[a], a);
-			const size_t 值个数 = 值列表.size();
-			buffer_ptr_t<T>data = 数组工厂.createBuffer<T>(值个数);
-			buffer_ptr_t<size_t>rows = 数组工厂.createBuffer<size_t>(值个数);
-			buffer_ptr_t<size_t>cols = 数组工厂.createBuffer<size_t>(值个数);
-			const size_t 行数 = 各维尺寸[0];
-			for (size_t a = 0; a < 值个数; ++a)
-			{
-				const 非零项& 项 = 值列表[a];
-				data[a] = 项.值;
-				cols[a] = 项.位置 / 行数;
-				rows[a] = 项.位置 % 行数;
-			}
-			return 数组工厂.createSparseArray(各维尺寸, 值个数, std::move(data), std::move(rows), std::move(cols));
-		}
-		Array 打包()noexcept override
-		{
-			return 打包({ 元素数,1 });
-		}
-	public:
-		virtual ~有类型缓冲() {}
-		static std::unique_ptr<动态类型缓冲>返回(size_t 元素数)
-		{
-			return std::unique_ptr<动态类型缓冲>(new 有类型缓冲<SparseArray<T>>(数组工厂.createBuffer<T>(元素数), 元素数));
-		}
-	};
-	template<>
-	struct 有类型缓冲<void>
-	{
-		static std::unique_ptr<动态类型缓冲>返回(size_t 元素数)
-		{
-			throw 不支持的类型;
+			const uint64_t 元素数 = 数组.getNumberOfElements();
+			return std::unique_ptr<动态类型缓冲>(new 有类型缓冲<T>(TypedArray<T>(std::move(数组)).release(), 元素数));
 		}
 	};
 	//不能inline，会导致无法链接
 	std::unique_ptr<动态类型缓冲>动态类型缓冲::创建(ArrayType 类型, size_t 元素数)
 	{
-		return 动态类型选择模板<有类型缓冲>(类型)(元素数);
+		return 动态类型选择模板<有类型缓冲创建器>(类型)(元素数);
+	}
+	std::unique_ptr<动态类型缓冲>动态类型缓冲::读取(Array&& MATLAB数组)
+	{
+		return 动态类型选择模板<有类型缓冲读取器>(MATLAB数组.getType())(std::move(MATLAB数组));
 	}
 }

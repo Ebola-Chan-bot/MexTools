@@ -20,7 +20,8 @@ namespace Mex工具
 		此Array不能转换为StringArray,
 		此Array不能转换为MATLABString,
 		此Array不能拷出为char,
-		此Array不能拷出为wchar_t
+		此Array不能拷出为wchar_t,
+		稀疏数组不能取得指针,
 	};
 	//这里使用static而不是extern，因为从其它编译单元链接的变量不一定能在DllMain阶段完成初始化，会造成意外错误。
 	static ArrayFactory 数组工厂;
@@ -1038,6 +1039,15 @@ namespace Mex工具
 		std::unique_ptr<动态类型缓冲>，请通过指针操作对象，因为内部实现是被子类继承的，直接取值会导致对象被截断。
 		*/
 		static std::unique_ptr<动态类型缓冲>创建(ArrayType 类型, size_t 元素数);
+		/*
+		通过无类型指针访问MATLAB数组。此方法仅适用于POD类型的MATLAB数组。
+		语法：Mex工具::动态类型缓冲::读取(MATLAB数组)
+		# 参数
+		Array&& MATLAB数组，要访问的MATLAB数组。此函数返回后，原数组变为不可用。
+		# 返回值
+		std::unique_ptr<动态类型缓冲>，请通过指针操作对象，因为内部实现是被子类继承的，直接取值会导致对象被截断。
+		*/
+		static std::unique_ptr<动态类型缓冲>读取(Array&& MATLAB数组);
 		virtual ~动态类型缓冲() {}
 		//打包后本对象变为不可用，所有数据封装在 MATLAB Array 中
 		virtual Array 打包(ArrayDimensions 各维尺寸)noexcept = 0;
