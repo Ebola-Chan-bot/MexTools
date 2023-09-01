@@ -10,12 +10,8 @@
 	</ItemDefinitionGroup>
 	<ItemDefinitionGroup>
 		<Link>
-			<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).$(Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
-		</Link>
-	</ItemDefinitionGroup>
-	<ItemDefinitionGroup Condition="Exists('$(MSBuildThisFileDirectory)lib\Mex工具.$(MSBuildVersion).lib')And$(Configuration)=='Release'">
-		<Link>
-			<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(MSBuildVersion).lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies Condition="$(Configuration.StartsWith('D'))">$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies Condition="$(Configuration.StartsWith('R'))">$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>

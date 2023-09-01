@@ -46,5 +46,6 @@
     <None Include="..\nuget\MATLAB.MexTools.nuspec" />
     <None Include="..\.gitignore" />
     <None Include="..\README.md" />
+    <None Include="..\NuGet打包.ps1" />
   </ItemGroup>
 </Project>
