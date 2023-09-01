@@ -4,7 +4,6 @@
 
 MATLAB C++ MEX 数据API文件函数本质上就是个实现了一套MEX标准接口的动态链接库，扩展名mexw64。你只需要在 Visual Studio 中新建一个C++动态链接库项目，安装此NuGet包，将输出扩展名改为mexw64，包含`<Mex实现.h>`，然后在自己的项目中定义函数对象，例：
 ```C++
-//matlab::mex::Function是MEX文件函数必须实现的接口。用户应当定义一个子类继承之，并重写其operator()
 using namespace matlab::mex;
 struct MexFunction :public Function //必须命名为MexFunction，public继承Function
 {
@@ -12,9 +11,16 @@ struct MexFunction :public Function //必须命名为MexFunction，public继承F
 	void operator()(ArgumentList& outputs, ArgumentList& inputs)override; //必须定义此方法
 	virtual ~MexFunction(); //此方法可选，用于 clear mex 时释放资源，必须虚析构
 };
-Function* const 函数对象 = new MexFunction(); //必须用new创建此对象指针，因为 clear mex 时将用delete析构
+Function* 创建Mex函数()
+{
+	return new MexFunction();
+}
+void 销毁Mex函数(Function* 函数指针)
+{
+	delete 函数指针;
+}
 ```
-当MATLAB初次调用MEX文件函数时，会先调用`初始化()`以取得`matlab::mex::Function`指针，然后调用其`operator()`操作符，输入参数并获取输出。执行`clear mex`命令时，则会`delete`此指针，级联调用用户定义的虚析构函数（如果有）。总之，MEX文件函数实际上是一个具有初始化、调用、析构生命周期的C\++类型，用户应当分别在初始化和析构阶段定义资源获取和释放操作，并在操作符中定义函数调用时的行为，根据输入参数产生输出。这样，即可编译出符合MEX标准、可被MATLAB直接调用的 C++ MEX 文件函数。此外，操作MATLAB数组通常还需要包含`<Mex类型.h>`。
+当MATLAB初次调用MEX文件函数时，会先调用`创建Mex函数()`以取得`matlab::mex::Function`指针，然后调用其`operator()`操作符，输入参数并获取输出。执行`clear mex`命令时，则会`delete`此指针，级联调用用户定义的虚析构函数（如果有）。总之，MEX文件函数实际上是一个具有初始化、调用、析构生命周期的C\++类型，用户应当分别在初始化和析构阶段定义资源获取和释放操作，并在操作符中定义函数调用时的行为，根据输入参数产生输出。这样，即可编译出符合MEX标准、可被MATLAB直接调用的 C++ MEX 文件函数。此外，操作MATLAB数组通常还需要包含`<Mex类型.h>`。
 
 [埃博拉酱的MATLAB扩展](https://github.com/Silver-Fang/MATLAB-Extension)项目就使用了本库参与的MEX文件函数，你可以查看此项目的C++代码，进一步了解如何使用本库编写MEX文件函数。
 
