@@ -10,8 +10,15 @@
 	</ItemDefinitionGroup>
 	<ItemDefinitionGroup>
 		<Link>
-			<AdditionalDependencies Condition="$(Configuration.StartsWith('D'))">$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-			<AdditionalDependencies Condition="$(Configuration.StartsWith('R'))">$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<Choose>
+				<!-- UseDebugLibraries is described in {VS2022}\Msbuild\Microsoft\VC\v170\1033\general_advanced.xml -->
+				<When Condition="$(UseDebugLibraries)">
+					<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+				</When>
+				<Otherwise>
+					<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
+				</Otherwise>
+			</Choose>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>
