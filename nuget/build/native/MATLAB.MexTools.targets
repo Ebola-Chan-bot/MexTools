@@ -8,17 +8,21 @@
 			<AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 		</ResourceCompile>
 	</ItemDefinitionGroup>
-	<ItemDefinitionGroup>
-		<Link>
-			<Choose>
-				<!-- UseDebugLibraries is described in {VS2022}\Msbuild\Microsoft\VC\v170\1033\general_advanced.xml -->
-				<When Condition="$(UseDebugLibraries)">
+	<Choose>
+		<!-- UseDebugLibraries is described in {VS2022}\Msbuild\Microsoft\VC\v170\1033\general_advanced.xml -->
+		<When Condition="$(UseDebugLibraries)">
+			<ItemDefinitionGroup>
+				<Link>
 					<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-				</When>
-				<Otherwise>
+				</Link>
+			</ItemDefinitionGroup>
+		</When>
+		<Otherwise>
+			<ItemDefinitionGroup>
+				<Link>
 					<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
-				</Otherwise>
-			</Choose>
-		</Link>
-	</ItemDefinitionGroup>
+				</Link>
+			</ItemDefinitionGroup>
+		</Otherwise>
+	</Choose>
 </Project>
