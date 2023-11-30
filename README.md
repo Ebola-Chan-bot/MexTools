@@ -93,6 +93,8 @@ namespace Mex工具
 	inline void 自动析构(T* 对象指针, void(*删除器)(T*))noexcept;
 	//指示此对象已被手动析构，可从自动析构表中移除。
 	inline void 手动析构(void* 对象指针)noexcept;
+	//检查对象指针是否存在于自动析构表中。如不存在，此指针可能是无效的，或者创建时未加入自动析构表。
+	inline bool 对象存在(void* 对象指针)noexcept;
 }
 ```
 某些计算机/编译器可能存在中文编码错误问题。你需要设置中文编码为UTF-8。对于 Windows 11，可以在任务栏搜索intl.cpl，转到【管理\非Unicode程序的语言\更改系统区域设置】，勾选【Beta版：使用 Unicode UTF-8 提供全球语言支持】。
