@@ -1068,9 +1068,9 @@ namespace Mex工具
 		内部::自动析构表[对象指针] = (void(*)(void*))删除器;
 	}
 	//手动析构的对象必须从自动析构表中移除，否则自动析构将发生异常。
-	inline void 手动析构(void* 对象指针)noexcept
+	inline bool 手动析构(void* 对象指针)noexcept
 	{
-		内部::自动析构表.erase(对象指针);
+		return 内部::自动析构表.erase(对象指针);
 	}
 	//检查对象指针是否存在于自动析构表中。如不存在，此指针可能是无效的，或者创建时未加入自动析构表。
 	inline bool 对象存在(void* 对象指针)noexcept
