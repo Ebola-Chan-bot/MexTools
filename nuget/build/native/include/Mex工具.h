@@ -6,7 +6,7 @@ using namespace matlab::data;
 using namespace matlab::mex;
 namespace Mex工具
 {
-	enum Mex异常 :uint8_t
+	enum class Mex异常 :uint8_t
 	{
 		无异常,
 		类型转换失败,
@@ -22,6 +22,7 @@ namespace Mex工具
 		此Array不能拷出为char,
 		此Array不能拷出为wchar_t,
 		稀疏数组不能取得指针,
+		不能从空数组取得标量
 	};
 	//这里使用static而不是extern，因为从其它编译单元链接的变量不一定能在DllMain阶段完成初始化，会造成意外错误。
 	static ArrayFactory 数组工厂;
@@ -189,7 +190,7 @@ namespace Mex工具
 		{
 			static 输出 返回(const Array& 数组)
 			{
-				throw 类型转换失败;
+				throw Mex异常::类型转换失败;
 			}
 		};
 		//满足std::is_convertible_v约束的特化类型，可以执行正确的类型转换
@@ -223,7 +224,7 @@ namespace Mex工具
 		{
 			static void 返回(const Array& 输入, T输出& 输出)
 			{
-				throw 类型转换失败;
+				throw Mex异常::类型转换失败;
 			}
 		};
 		template<typename T>
@@ -328,7 +329,7 @@ namespace Mex工具
 		{
 			static size_t 返回(const Array& 输入)
 			{
-				throw 不支持的类型;
+				throw Mex异常::不支持的类型;
 			}
 		};
 		template<typename T>
@@ -394,7 +395,7 @@ namespace Mex工具
 
 #define API声明(函数名) void 函数名(ArgumentList& outputs,ArgumentList& inputs)
 #define API索引 constexpr void (*(API[]))(ArgumentList&, ArgumentList&) =
-#define API调用 const uint8_t 选项=万能转码<uint8_t>(std::move(inputs[0]));if(选项<std::extent_v<decltype(API)>)API[选项](outputs, inputs);else throw 不支持的API;
+#define API调用 const uint8_t 选项=万能转码<uint8_t>(std::move(inputs[0]));if(选项<std::extent_v<decltype(API)>)API[选项](outputs, inputs);else throw Mex异常::不支持的API;
 	/*
 	出错时，将后续返回值设为空数组
 	为了将C++异常传递给MATLAB，我们通常需要将MEX文件函数的第一个返回值保留作为错误代码
@@ -416,6 +417,8 @@ namespace Mex工具
 		requires (!std::_Is_any_of_v<T, CellArray,std::string>)
 	inline T 万能转码(const Array& 输入)
 	{
+		if (输入.isEmpty())
+			throw Mex异常::不能从空数组取得标量;
 		return 动态类型选择模板<内部::转换结构, T>(输入.getType())(输入);
 	}
 	/*
@@ -710,7 +713,7 @@ namespace Mex工具
 		}
 		break;
 		default:
-			throw 此Array不能拷出为wchar_t;
+			throw Mex异常::此Array不能拷出为wchar_t;
 		}
 	}
 	/*
@@ -767,7 +770,7 @@ namespace Mex工具
 			}
 			break;
 		default:
-			throw 此Array不能转换为stdstring;
+			throw Mex异常::此Array不能转换为stdstring;
 		}
 	}
 	/*

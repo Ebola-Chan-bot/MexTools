@@ -20,7 +20,7 @@ namespace Mex工具
 		case ArrayType::CELL:
 			return CharArray(Array(CellArray(输入)[0])).toUTF16();
 		default:
-			throw 此Array不能转换为String;
+			throw Mex异常::此Array不能转换为String;
 		}
 	}
 	template<>
@@ -35,7 +35,7 @@ namespace Mex工具
 		case ArrayType::CELL:
 			return CharArray(Array(CellArray(输入)[0])).toUTF16();
 		default:
-			throw 此Array不能转换为MATLABString;
+			throw Mex异常::此Array不能转换为MATLABString;
 		}
 	}
 	template<>
@@ -50,7 +50,7 @@ namespace Mex工具
 		case ArrayType::CELL:
 			return CellArray(输入)[0];
 		default:
-			throw 此Array不能转换为CharArray;
+			throw Mex异常::此Array不能转换为CharArray;
 		}
 	}
 	std::string 万能转码(Array&& 输入)
@@ -89,7 +89,7 @@ namespace Mex工具
 		}
 		break;
 		default:
-			throw 此Array不能转换为stdstring;
+			throw Mex异常::此Array不能转换为stdstring;
 		}
 		return 输出;
 	}
@@ -116,7 +116,7 @@ namespace Mex工具
 			return 输出;
 		}
 		default:
-			throw 此Array不能转换为StringArray;
+			throw Mex异常::此Array不能转换为StringArray;
 		}
 	}
 	template<>
@@ -153,7 +153,7 @@ namespace Mex工具
 			return WideCharToMultiByte(CP_UTF8, 0, (LPCWCH)缓冲.get(), 字数, 输出, 字数 * 3 + 1, nullptr, nullptr);
 		}
 		default:
-			throw 此Array不能拷出为char;
+			throw Mex异常::此Array不能拷出为char;
 		}
 	}
 	template<typename T>
@@ -178,7 +178,7 @@ namespace Mex工具
 	{
 		static std::unique_ptr<动态类型缓冲>返回(uint64_t 元素数)
 		{
-			throw 不支持的类型;
+			throw Mex异常::不支持的类型;
 		}
 	};
 	template<typename T>
@@ -186,7 +186,7 @@ namespace Mex工具
 	{
 		static std::unique_ptr<动态类型缓冲>返回(Array&& 数组)
 		{
-			throw 不支持的类型;
+			throw Mex异常::不支持的类型;
 		}
 	};
 	template<MATLAB简单元素 T>
