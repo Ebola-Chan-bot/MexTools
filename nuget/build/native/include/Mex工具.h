@@ -109,37 +109,18 @@ namespace Mex工具
 		转换结构，用作【动态类型选择模板】的模板参数。此转换结构提供一个一般实现和两个特化实现，都有一个【static 输出 返回(const Array& 数组)】成员。注意返回成员的类型跟模板参数【输出】有关，因为输出属于后续模板参数，而【动态类型选择模板】仅要求第一个模板参数不能与返回成员类型有关。因此这里的返回成员可以跟输出类型有关，而不能跟输入类型有关。
 		对一般的输入输出，我们认为它不是有效的类型转换，应当抛异常。
 		*/
-		template<typename 输入, typename 输出>
-		struct 转换结构
+		template<typename 目标类型>
+		struct 标量转换
 		{
-			static 输出 返回(const Array& 数组)
+			template<typename T>
+			目标类型 operator()(const T&输入)
 			{
-				throw Mex异常::类型转换失败;
+				return (目标类型)输入[0];
 			}
-		};
-		//满足std::is_convertible_v约束的特化类型，可以执行正确的类型转换
-		template<typename T输入, typename T输出>
-		concept 可转换 = requires(T输入 输入)
-		{
-			(T输出)输入;
-		};
-		template<MATLAB简单元素 T输入, typename T输出>
-			requires 可转换<T输入, T输出>
-		struct 转换结构<T输入, T输出>
-		{
-			static T输出 返回(const Array& 数组)
+			template<typename T>
+				requires requires(目标类型& 输出, const T& 输入) { 输出 = 输入[0] }
 			{
-				return (T输出)(T输入)TypedArray<T输入>(数组)[0];
-			}
-		};
-		//对于MATLAB稀疏矩阵需要特殊处理，输入类型虽然是SparseArray，但输出的应当是元素的类型，而不是数组类型。
-		template<MATLAB简单元素 T输入, typename T输出>
-			requires 可转换<T输入, T输出>
-		struct 转换结构<SparseArray<T输入>, T输出>
-		{
-			static T输出 返回(const Array&数组)
-			{
-				return (T输出)(T输入)SparseArray<T输入>(数组)[0];
+				return 输入[0];
 			}
 		};
 		//输出迭代器必须用引用返回，不然不能满足动态类型选择模板的要求
@@ -438,7 +419,7 @@ namespace Mex工具
 		requires std::is_same_v<T, matlab::data::CellArray>
 	inline matlab::data::CellArray 万能转码(const matlab::data::Array& 输入)
 	{
-		CellArray 输出 = 数组工厂.createCellArray({ 1 });
+		matlab::data::CellArray 输出 = 数组工厂.createCellArray({ 1 });
 		输出[0] = 输入;
 		return 输出;
 	}
@@ -554,6 +535,7 @@ namespace Mex工具
 	//获取MATLAB数组的字节数，即元素字节数×元素个数
 	inline size_t 数组字节数(const matlab::data::Array& 数组)
 	{
+		matlab::data::apply_visitor
 		return 动态类型选择模板<内部::数组字节数>(数组.getType())(数组);
 	}
 	/*
