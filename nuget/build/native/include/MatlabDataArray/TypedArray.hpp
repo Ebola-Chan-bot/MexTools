@@ -1,4 +1,4 @@
-/* Copyright 2014-2018 The MathWorks, Inc. */
+/* Copyright 2014-2024 The MathWorks, Inc. */
 
 #ifndef TYPED_ARRAY_HPP_
 #define TYPED_ARRAY_HPP_
@@ -367,9 +367,24 @@ namespace matlab {
              * @throw InvalidArrayTypeException - if this TypedArray does not support releasing the buffer
              */
             buffer_ptr_t<T> release() {
+                // Unshare the Array from any MDA shared copies
+                impl::ArrayImpl* newImpl = nullptr;
+                typedef bool(*ArrayUnshareFcnPtr)(impl::ArrayImpl*, bool, impl::ArrayImpl**);
+                static const ArrayUnshareFcnPtr fcn_unshare = detail::resolveFunction<ArrayUnshareFcnPtr>
+                    (detail::FunctionType::ARRAY_UNSHARE);
+                if (fcn_unshare(pImpl.get(), (pImpl.use_count() == 1), &newImpl)) {
+                    pImpl.reset(newImpl, [](impl::ArrayImpl* ptr) {
+                        typedef void(*ArrayDestroyFcnPtr)(impl::ArrayImpl*);
+                        static const ArrayDestroyFcnPtr fcn2 = detail::resolveFunction<ArrayDestroyFcnPtr>
+                            (detail::FunctionType::ARRAY_DESTROY);
+                        fcn2(ptr);
+                    });
+                }
+
+                // Release buffer from the unshared array if it was shared
+                // or the original array if is wasn't shared
                 void* buffer = nullptr;
                 buffer_deleter_t deleter = nullptr;
-                detail::ReferenceImpl* impl = nullptr;
                 typedef int(*ArrayReleaseBufferFcnPtr)(impl::ArrayImpl*, bool, void**, void(**deleter)(void*));
                 static const ArrayReleaseBufferFcnPtr fcn = detail::resolveFunction<ArrayReleaseBufferFcnPtr>
                     (detail::FunctionType::ARRAY_RELEASE_BUFFER);

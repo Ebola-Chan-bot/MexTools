@@ -2,40 +2,12 @@
 //实现MEX文件函数必须包含本头文件
 #include <cppmex/detail/mexFunctionAdapterImpl.hpp>
 #include <Mex类型.h>
-//静态库函数必须“被使用”才能导出。dllexport和静态方法都不算被使用，一般方法会出现重定义错误，因此这里采用λ表达式赋给函数指针的方式
-namespace Mex工具
-{
-	namespace 内部
-	{
-		static void (*导出列表)() = []()
-			{
-				mexCreateMexFunction(nullptr);
-				mexDestroyMexFunction(nullptr, nullptr);
-				mexFunctionAdapter(0, 0, 0, nullptr, nullptr, nullptr, nullptr);
-			};
-	}
-}
-//用户必须定义的初始化函数
-matlab::mex::Function* 创建Mex函数();
-//用户必须定义的终结化函数
-void 销毁Mex函数(matlab::mex::Function* 函数指针);
-/*
-matlab::mex::Function是MEX文件函数必须实现的接口。用户应当定义一个子类继承之，并重写其operator()。例：
-```C++
-using namespace matlab::mex;
-struct MexFunction :public Function //必须命名为MexFunction，public继承Function
-{
-	MexFunction(); //此方法可选，用于初始化，不能有任何参数输入
-	void operator()(ArgumentList& outputs, ArgumentList& inputs)override; //必须定义此方法
-	virtual ~MexFunction(); //此方法可选，用于 clear mex 时释放资源，必须虚析构
-};
-Function* 创建Mex函数()
-{
-	return new MexFunction();
-}
-void 销毁Mex函数(Function* 函数指针)
-{
-	delete 函数指针;
-}
-```
-*/
+
+//用户必须定义以下函数
+
+//全局初始化，在MATLAB首次载入MEX时调用。用户应当在此函数中进行全局变量初始化、持久资源分配等不应在每次调用时重复进行的操作。全局变量也可以在本函数外初始化，但这样做不能保证初始化顺序，仅适用于不依赖其它全局变量的情况。在此方法中进行具有严格顺序依赖要求的全局变量初始化。
+void 初始化();
+//执行调用，MATLAB每次调用MEX文件函数时调用此方法。用户应当在此函数中处理输入参数，充分利用初始化阶段分配的持久资源，然后将结果写入输出参数
+void 执行(matlab::mex::ArgumentList& 输出, matlab::mex::ArgumentList& 输入);
+//全局清理，在MATLAB卸载MEX（包括 clear mex 以及MATLAB会话退出）时调用。用户应当在此函数中释放全局变量、持久资源等
+void 清理();

@@ -80,6 +80,58 @@ namespace matlab {
 }
 
 
-void throwIfError(int errID, void* mexcept);
+inline void throwIfError(int errID, void* mexcept) {
+    matlab::mex::detail::ErrorType errorID(static_cast<matlab::mex::detail::ErrorType>(errID));
+    switch (errorID) {
+    case matlab::mex::detail::ErrorType::NoException:
+        break;
+    case matlab::mex::detail::ErrorType::RuntimeError: {
+        matlab::data::impl::ArrayImpl* impl = reinterpret_cast<matlab::data::impl::ArrayImpl*>(mexcept);
+        matlab::data::Array exArr(matlab::data::detail::Access::createObj<matlab::data::Array>(impl));
+        matlab::data::StructArray sArr(exArr);
+        matlab::data::TypedArray<int> errStatus = sArr[0][std::string("status")];
+        int rErrID_ = errStatus[0];
+        matlab::mex::detail::ErrorType rErrorID(static_cast<matlab::mex::detail::ErrorType>(rErrID_));
+        switch (rErrorID) {
+        case matlab::mex::detail::ErrorType::SyntaxError: {
+            matlab::engine::MATLABSyntaxException exp = matlab::engine::detail::createMATLABSyntaxException(sArr);
+            throw exp;
+        }
+        case matlab::mex::detail::ErrorType::ExecutionError: {
+            matlab::engine::MATLABExecutionException exp = matlab::engine::detail::createMATLABExecutionException(sArr);
+            throw exp;
+        }
+        case matlab::mex::detail::ErrorType::EngineError: {
+            matlab::engine::MATLABException exp = matlab::engine::detail::createMATLABException(sArr);
+            throw exp;
+        }
+        case matlab::mex::detail::ErrorType::InterruptedError: {
+            std::string msg = "MATLAB command was interrupted.";
+            throw matlab::engine::InterruptedException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String(msg));
+        }
+        default:
+            throw matlab::engine::MATLABException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String("Runtime Error"));
+        }
+    }
+    case matlab::mex::detail::ErrorType::ThreadError: {
+        const std::string msg = "Synchronous version of MATLAB Engine functions must be called from the thread that called the MEX function.";
+        throw matlab::engine::MATLABException("MATLAB:mex:CppMexThreadMismatch", matlab::engine::convertUTF8StringToUTF16String(msg));
+    }
+    case matlab::mex::detail::ErrorType::OutOfMemory: {
+        std::string outOfMemoryError = "Not enough memory available to support the request.";
+        throw matlab::OutOfMemoryException(outOfMemoryError);
+    }
+    case matlab::mex::detail::ErrorType::CancelError: {
+        std::string msg = "MATLAB command was cancelled.";
+        throw matlab::engine::CancelledException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String(msg));
+    }
+    case matlab::mex::detail::ErrorType::SystemError: {
+        std::string msg = "Unexpected exception caught in feval.";
+        throw matlab::engine::MATLABException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String(msg));
+    }
+    default:
+        throw matlab::engine::MATLABException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String("Error"));
+    }
+}
 
 #endif

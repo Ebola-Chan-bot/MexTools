@@ -13,7 +13,7 @@
 namespace matlab {
 
     namespace engine {
-        
+
         typedef std::basic_streambuf<char16_t> StreamBuffer;
 
         template <class T>
@@ -167,6 +167,12 @@ namespace matlab {
             * @throw none
             */
             std::shared_ptr<TaskReference> getTaskReference();
+
+            /**
+            * Allowing MATLABEngine to access member variables
+            *
+            */
+            friend class MATLABEngine;
 
         private:
             FutureResult(std::future<T>&) = delete;

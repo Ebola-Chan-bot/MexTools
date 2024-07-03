@@ -1,4 +1,4 @@
-/* Copyright 2014-2021 The MathWorks, Inc. */
+/* Copyright 2014-2024 The MathWorks, Inc. */
 
 #ifndef MATLAB_DATA_ARRAY_FACTORY_HPP_
 #define MATLAB_DATA_ARRAY_FACTORY_HPP_
@@ -51,8 +51,7 @@ class NameListImpl;
 }
 
 /**
- * The ArrayFactory base class provides all of the general APIs that
- * each of the concrete factories needs to support.
+ * The ArrayFactory class provides all of the APIs to create MATLAB Data Arrays
  */
 class ArrayFactory {
   public:
@@ -462,6 +461,31 @@ class ArrayFactory {
     }
 
     /**
+     * Creates a 1xn CharArray from the specified std::string, where n is the
+     * string length.  Data is expected to be in UTF8 encoding.
+     * It is converted from std::string<char> to std::string<CHAR16_T>.
+     *
+     * @param str - std::string containing the data to be filled into the Array
+     *
+     * @return CharArray - a CharArray object containing data copied from str
+     *
+     * @throw matlab::OutOfMemoryException - if the array could not be allocated
+     * @throw matlab::InvalidUTF8InputException - input string contains a non-UTF8 character
+     * @throw FeatureNotSupportedException - if customer code is running version older than 2024b
+     */
+    CharArray createCharArrayFromUTF8(const std::string& str) {
+         typedef int (*CreateCharArrayFromUTF8FcnPtr)(
+            typename impl::ArrayFactoryImpl * impl, const char* data, size_t strlen, 
+            typename impl::ArrayImpl**);
+        static const CreateCharArrayFromUTF8FcnPtr fcn =
+            detail::resolveFunction<CreateCharArrayFromUTF8FcnPtr>(
+                detail::FunctionType::CREATE_CHAR_ARRAY_FROM_UTF8);
+        impl::ArrayImpl* impl = nullptr;
+        detail::throwIfError(fcn(pImpl.get(), str.c_str(), str.size(), &impl));
+        return detail::Access::createObj<CharArray>(impl);
+    }
+
+    /**
      * Creates a StructArray with the given dimensions and fieldnames
      *
      * @param dims - the dimensions for the Array
@@ -705,6 +729,7 @@ class ArrayFactory {
         return detail::Access::createObj<SparseArray<T>>(impl);
     }
 
+    
 
   protected:
     std::shared_ptr<impl::ArrayFactoryImpl> pImpl;

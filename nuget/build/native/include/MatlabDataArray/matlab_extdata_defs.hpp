@@ -1,4 +1,4 @@
-/* Copyright 2016 The MathWorks, Inc. */
+/* Copyright 2016-2024 The MathWorks, Inc. */
 
 #ifndef MATLAB_EXTDATA_DEFS_HPP_
 #define MATLAB_EXTDATA_DEFS_HPP_

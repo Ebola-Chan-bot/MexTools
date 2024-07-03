@@ -1,4 +1,4 @@
-/* Copyright 2015-2020 The MathWorks, Inc. */
+/* Copyright 2015-2024 The MathWorks, Inc. */
 
 #ifndef MATLAB_EXCEPTION_HPP_
 #define MATLAB_EXCEPTION_HPP_
@@ -44,6 +44,8 @@ using InvalidTypeInRowMajorArrayException =
 using SystemErrorException = detail::ArrayException<matlab::Exception, ExceptionType::SystemError>;
 using InvalidFieldNameException =
     detail::ArrayException<matlab::Exception, ExceptionType::InvalidFieldName>;
+using IllegalFieldNameException =
+    detail::ArrayException<matlab::Exception, ExceptionType::IllegalFieldName>;
 using FailedToLoadLibMatlabDataArrayException =
     detail::ArrayException<matlab::Exception, ExceptionType::FailedToLoadLibMatlabDataArray>;
 using FailedToResolveSymbolException =
@@ -82,6 +84,44 @@ using AccessingObjectNotSupportedException =
     detail::ArrayException<matlab::Exception, ExceptionType::ObjectNotAccessible>;
 using InvalidNumberOfElementsProvidedException =
     detail::ArrayException<matlab::Exception, ExceptionType::InvalidNumberOfElementsProvided>;
+using ObjectNotFoundException =
+    detail::ArrayException<matlab::Exception, ExceptionType::ObjectNotFound>;
+using WrongVectorSizeForStructException =
+    detail::ArrayException<matlab::Exception, ExceptionType::WrongVectorSizeForStruct>;
+using PropertyExistsException =
+    detail::ArrayException<matlab::Exception, ExceptionType::PropertyExists>;
+using CouldNotCallConstructorException =
+    detail::ArrayException<matlab::Exception, ExceptionType::CouldNotCallConstructor>;
+using HandleObjectNotFoundException =
+    detail::ArrayException<matlab::Exception, ExceptionType::HandleObjectNotFound>;
+using InvalidHeterogeneousClassException =
+    detail::ArrayException<matlab::Exception, ExceptionType::InvalidHeterogeneousClass>;
+using InvalidHandleObjectTypeException =
+    detail::ArrayException<matlab::Exception, ExceptionType::InvalidHandleObjectType>;
+using InvalidClassNameException =
+    detail::ArrayException<matlab::Exception, ExceptionType::InvalidClassName>;
+using RecursionLimitExceededException =
+    detail::ArrayException<matlab::Exception, ExceptionType::RecursionLimitExceeded>;
+using PropertyNotFoundException =
+    detail::ArrayException<matlab::Exception, ExceptionType::PropertyNotFound>;
+using InvalidPropertyValueException =
+    detail::ArrayException<matlab::Exception, ExceptionType::InvalidPropertyValue>;
+using FailedToSerializeObjectException =
+    detail::ArrayException<matlab::Exception, ExceptionType::FailedToSerializeObject>;
+using InvalidEnumerationNameException =
+    detail::ArrayException<matlab::Exception, ExceptionType::InvalidEnumerationName>;
+using StringIsMissingException =
+    detail::ArrayException<matlab::Exception, ExceptionType::StringIsMissing>;
+using UnSuppportedOperationException =
+    detail::ArrayException<matlab::Exception, ExceptionType::UnSuppportedOperation>;
+using ObjectSerializationFailedException =
+    detail::ArrayException<matlab::Exception, ExceptionType::ObjectSerializationFailed>;
+using JavaNotSupportedException =
+    detail::ArrayException<matlab::Exception, ExceptionType::JavaNotSupported>;
+using InvalidAssignmentForContainerArrayException =
+    detail::ArrayException<matlab::Exception, ExceptionType::InvalidAssignmentForContainerArray>;
+using InvalidUTF8InputException =
+    detail::ArrayException<matlab::Exception, ExceptionType::InvalidUTF8Input>;
 } // namespace data
 } // namespace matlab
 

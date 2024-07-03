@@ -1,4 +1,4 @@
-// Copyright 2017-2020 The MathWorks, Inc.
+// Copyright 2017-2021 The MathWorks, Inc.
 
 #ifndef MATLAB_DATA_VISITORS_HPP
 #define MATLAB_DATA_VISITORS_HPP
@@ -19,7 +19,7 @@
 #include "TypedArrayRef.hpp"
 #include "SparseArrayRef.hpp"
 
-#if (__cplusplus >= 201703L) || (_MSVC_LANG >= 201703L)
+#if (__cplusplus >= 201703L) || (defined (_MSVC_LANG) && (_MSVC_LANG >= 201703L))
     // Using C++17, where std::is_invocable is available. 
     namespace matlab { namespace data { namespace detail {
         template<typename... Args> using is_invocable = std::is_invocable<Args...>;

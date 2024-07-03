@@ -1,4 +1,4 @@
-/* Copyright 2015-2017 The MathWorks, Inc. */
+/* Copyright 2015-2024 The MathWorks, Inc. */
 
 #ifndef MATLAB_EXTDATA_ARRAY_TYPEDARRAY_REF_HPP
 #define MATLAB_EXTDATA_ARRAY_TYPEDARRAY_REF_HPP
@@ -65,8 +65,28 @@ namespace matlab {
                 static const CharArrayRefGetAsciiFcnPtr fcn = detail::resolveFunction<CharArrayRefGetAsciiFcnPtr>
                     (detail::FunctionType::CHAR_ARRAY_REF_GET_ASCII);
                 detail::throwIfError(fcn(pImpl.get(), &strVal, &strLen));
-		return detail::toAsciiHelper(strVal, strLen);
+                return detail::toAsciiHelper(strVal, strLen);
             }
+            /**
+             * Return contents of a CHAR array as an UTF8 string
+             *
+             * @return std::string string
+             * @throw FeatureNotSupportedException - if customer code is running version older than 2024b
+             * @throw EOutOfMemory
+             */
+            std::string toUTF8() const noexcept {
+                const char16_t* strVal = nullptr;
+                size_t strLen = 0;
+                typedef void(*CharArrayRefGetUTF8FcnPtr)(detail::ReferenceImpl*,
+                    const char16_t**,
+                    size_t*);
+                static const CharArrayRefGetUTF8FcnPtr fcn = detail::resolveFunction<CharArrayRefGetUTF8FcnPtr>
+                    (detail::FunctionType::CHAR_ARRAY_REF_GET_UTF8);
+                fcn(pImpl.get(), &strVal, &strLen);
+                return detail::toUTF8Helper(strVal, strLen);
+
+            }
+
 
           protected:
             CharArrayExt(std::shared_ptr<detail::ReferenceImpl> impl) MW_NOEXCEPT :

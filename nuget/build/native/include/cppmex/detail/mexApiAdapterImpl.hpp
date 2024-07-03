@@ -8,9 +8,14 @@
 #include "mexEngineUtilImpl.hpp"
 #include "mexExceptionType.hpp"
 #include <vector>
+#include <string>
+
+#include <typeinfo>
 #include <iostream>
 #include "assert.h"
 #include "../mexMatlabEngine.hpp"
+#include "../mexFuture.hpp"
+
 
 LIBMWMEX_API_EXTERN_C{
 
@@ -45,6 +50,15 @@ namespace matlab {
     namespace engine {
         namespace detail {
 
+            template <typename T>
+            struct is_complex_t : public std::false_type {};
+            template <typename T>
+            struct is_complex_t<std::complex<T>> : public std::true_type {};
+
+            template <typename T>
+            struct is_vector_t : public std::false_type {};
+            template <typename T, typename A>
+            struct is_vector_t<std::vector<T, A>> : public std::true_type {};
 
             template<typename T>
             inline void validateTIsSupported() {
@@ -60,21 +74,59 @@ namespace matlab {
                     || std::is_same<U, uint16_t>::value
                     || std::is_same<U, uint32_t>::value
                     || std::is_same<U, uint64_t>::value
+                    || std::is_same<U, char>::value
+                    || std::is_same<U, std::basic_string<char>>::value
+                    || std::is_same<U, std::basic_string<char16_t>>::value
                     || std::is_same<U, float>::value
-                    || std::is_same<U, double>::value, "Attempted to use unsupported types.");
+                    || std::is_same<U, double>::value
+                    || is_complex_t<U>()
+                    || is_vector_t<U>(), "Attempted to use unsupported types.");
             }
 
-            template<class T>
-            matlab::data::Array createRhs(matlab::data::ArrayFactory& factory, T&& value) {
+            inline matlab::data::Array createArray(matlab::data::ArrayFactory& factory, std::basic_string<char16_t>&& value)
+            {
+                validateTIsSupported<std::basic_string<char16_t>>();
+                std::u16string new_valueInput(value.cbegin(),value.cend());
+                return factory.createScalar(new_valueInput);
+            }
+
+            template<size_t N>
+            matlab::data::Array createArray(matlab::data::ArrayFactory& factory, char const (&str)[N])
+            {
+                validateTIsSupported<char>();
+                std::string new_valueInput(str);
+                return factory.createScalar(new_valueInput);
+            }
+
+            template<typename T>
+            matlab::data::Array createArray(matlab::data::ArrayFactory& factory, T&& value)
+            {
                 validateTIsSupported<T>();
                 using U = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
                 return factory.createArray<U>({ 1, 1 }, { value });
+            }
+
+            template<class T>
+            matlab::data::Array createRhs(matlab::data::ArrayFactory& factory, T&& valueInput) {
+                return createArray(factory, valueInput);
+            }
+
+            template <typename T, typename A>
+            matlab::data::Array createRhs(matlab::data::ArrayFactory& factory,
+                                          std::vector<T, A>& value) {
+                validateTIsSupported<T>();
+                return factory.createArray({1, value.size()}, value.begin(), value.end());
             }
 
             template<typename T, typename A>
             matlab::data::Array createRhs(matlab::data::ArrayFactory& factory, std::vector <T, A>&& value) {
                 validateTIsSupported<T>();
                 return factory.createArray({ 1, value.size() }, value.begin(), value.end());
+            }
+
+            inline matlab::data::Array createRhs(matlab::data::ArrayFactory& factory, matlab::data::Array& value) {
+                (void) factory;
+                return value;
             }
 
             template <std::size_t ...Ints>
@@ -95,6 +147,8 @@ namespace matlab {
 
             template<std::size_t N>
             using make_index_sequence = typename make_index_sequence_impl<N>::type;
+
+
 
             template<typename T>
             struct createLhs {
@@ -129,7 +183,131 @@ namespace matlab {
             template<>
             struct createLhs < void > {
                 static const size_t nlhs = 0;
-                void operator()(std::vector<matlab::data::Array>&& lhs) const {}
+                void operator()(std::vector<matlab::data::Array>&& lhs) const {
+                    (void) lhs;
+                }
+            };
+
+            template<>
+            struct createLhs<std::vector<std::string>> {
+                static const size_t nlhs = 1;
+
+                std::vector<std::string> operator()(std::vector<matlab::data::Array>&& lhs) const {
+                    if (lhs.empty()) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+                    std::vector<std::string> resultVector;
+                    try {
+                        for( auto matlabArray : lhs )
+                        {
+                            if (matlabArray.getType() == matlab::data::ArrayType::MATLAB_STRING)
+                            {
+                                matlab::data::TypedArray<matlab::data::MATLABString> matlabString = matlabArray;
+                                for( auto r : matlabString)
+                                {
+                                    std::string output = r;
+                                    resultVector.push_back(output);
+                                }
+                            }
+                            else if (matlabArray.getType() == matlab::data::ArrayType::CHAR)
+                            {
+                                matlab::data::CharArray charArray = matlabArray;
+                                std::string output = charArray.toAscii();
+                                resultVector.push_back(output);
+                            }
+                            else
+                            {
+                                throw matlab::data::InvalidArrayTypeException("The return value is not a string (or) char.");
+                            }
+                        }
+                    } catch (const std::exception& e) {
+                        throw matlab::engine::TypeConversionException(e.what());
+                    }
+
+                    return resultVector;
+                }
+            };
+
+            template<>
+            struct createLhs<std::vector<std::u16string>> {
+                static const size_t nlhs = 1;
+
+                std::vector<std::u16string> operator()(std::vector<matlab::data::Array>&& lhs) const {
+                    if (lhs.empty()) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+
+                    std::vector<std::u16string> resultVector;
+                    try {
+                        for( auto matlabArray : lhs )
+                        {
+                            if (matlabArray.getType() == matlab::data::ArrayType::MATLAB_STRING)
+                            {
+                                matlab::data::TypedArray<matlab::data::MATLABString> matlabString = matlabArray;
+                                for( auto r : matlabString)
+                                {
+                                    std::u16string output = r;
+                                    resultVector.push_back(output);
+                                }
+                            }
+                            else if (matlabArray.getType() == matlab::data::ArrayType::CHAR)
+                            {
+                                matlab::data::CharArray valueCArray = matlabArray;
+                                std::u16string output = valueCArray.toUTF16();
+                                resultVector.push_back(output);
+                            }
+                            else
+                            {
+                                throw matlab::data::InvalidArrayTypeException("The return value is not a string (or) char.");
+                            }
+                        }
+                    } catch (const std::exception& e) {
+                        throw matlab::engine::TypeConversionException(e.what());
+                    }
+                    return resultVector;
+                }
+            };
+
+            template<typename T, typename A>
+            struct createLhs <std::vector<T, A>> {
+                static const size_t nlhs = 1;
+
+                std::vector<T, A> operator()(std::vector<matlab::data::Array>&& lhs) const {
+                    if (lhs.empty()) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+
+                    std::vector<T, A> resultVector;
+                    try {
+                        matlab::data::TypedArray<T> value(std::move(lhs.front()));
+                        for (auto elem : value) {
+                            resultVector.push_back(elem);
+                        }
+                    } catch (const std::exception& e) {
+                        throw matlab::engine::TypeConversionException(e.what());
+                    }
+
+                    return resultVector;
+                }
+
+                std::vector<T,A> operator()(matlab::data::TypedArray<T> lhs) const {
+                  auto const begin = lhs.begin();
+                  auto const end = lhs.end();
+                  if (begin == end) {
+                      throw matlab::engine::TypeConversionException("The result is empty.");
+                  }
+
+                  std::vector<T, A> resultVector;
+                  try {
+                      for (auto elem : lhs) {
+                          resultVector.push_back(elem);
+                      }
+                  } catch (const std::exception& e) {
+                      throw matlab::engine::TypeConversionException(e.what());
+                  }
+
+                  return resultVector;
+                }
             };
 
             template<typename... TupleTypes>
@@ -152,11 +330,120 @@ namespace matlab {
                     return std::tuple <TupleTypes...>(createLhs<TupleElement<IndexList>>()(std::move(lhs[IndexList]))...);
                 }
             };
+
+            template<>
+            struct createLhs<std::string> {
+                static const size_t nlhs = 1;
+
+                std::string operator()(std::vector<matlab::data::Array>&& lhs) const {
+                    if (lhs.empty()) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+                    std::string value;
+                    try {
+                        matlab::data::Array type = lhs.front();
+                        if (type.getType() == matlab::data::ArrayType::MATLAB_STRING)
+                        {
+                            matlab::data::TypedArray<data::MATLABString> valueMString(std::move(lhs.front()));
+                            value = valueMString[0];
+                        }
+                        else if (type.getType() == matlab::data::ArrayType::CHAR)
+                        {
+                            matlab::data::CharArray valueCArray(std::move(lhs.front()));
+                            value = valueCArray.toAscii();
+                        }
+                        else
+                        {
+                            throw matlab::data::InvalidArrayTypeException("The return value is not a string (or) char.");
+                        }
+                    }
+                    catch (const std::exception& e) {
+                        throw matlab::engine::TypeConversionException(e.what());
+                    }
+                    return value;
+                }
+
+                std::string operator()(matlab::data::TypedArray<data::MATLABString> lhs) const {
+                    auto const begin = lhs.begin();
+                    auto const end = lhs.end();
+                    if (begin == end) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+                    return *begin;
+                }
+            };
+
+            template<>
+            struct createLhs<std::u16string> {
+                static const size_t nlhs = 1;
+
+                std::u16string operator()(std::vector<matlab::data::Array>&& lhs) const {
+                    if (lhs.empty()) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+
+                    std::u16string value;
+                    try {
+                        matlab::data::Array type = lhs.front();
+                        if (type.getType() == matlab::data::ArrayType::MATLAB_STRING)
+                        {
+                            matlab::data::TypedArray<data::MATLABString> valueMString(std::move(lhs.front()));
+                            value = valueMString[0];
+                        }
+                        else if (type.getType() == matlab::data::ArrayType::CHAR)
+                        {
+                            matlab::data::CharArray valueCArray(std::move(lhs.front()));
+                            value = valueCArray.toUTF16();
+                        }
+                        else
+                        {
+                            throw matlab::data::InvalidArrayTypeException("The return value is not a string (or) char.");
+                        }
+                    }
+                    catch (const std::exception& e) {
+                        throw matlab::engine::TypeConversionException(e.what());
+                    }
+                    return value;
+                }
+
+                std::u16string operator()(matlab::data::TypedArray<data::MATLABString> lhs) const {
+                    auto const begin = lhs.begin();
+                    auto const end = lhs.end();
+                    if (begin == end) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+                    return *begin;
+                }
+            };
+
+            template<>
+            struct createLhs<matlab::data::Array> {
+                static const size_t nlhs = 1;
+
+                matlab::data::Array operator()(std::vector<matlab::data::Array>&& lhs) const {
+                    if (lhs.empty()) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+                    return lhs[0];
+                }
+
+                matlab::data::Array operator()(matlab::data::TypedArray<matlab::data::Array> lhs) const {
+                    auto const begin = lhs.begin();
+                    auto const end = lhs.end();
+                    if (begin == end) {
+                        throw matlab::engine::TypeConversionException("The result is empty.");
+                    }
+                    return *begin;
+                }
+            };
         }
     }
 }
 
-void implDeleter(matlab::data::impl::ArrayImpl** impl);
+inline void implDeleter(matlab::data::impl::ArrayImpl** impl) {
+    if (impl != nullptr)
+        free(impl);
+}
 
 inline void writeToStreamBuffer(void* buffer, const char16_t* stream, size_t n) {
     std::shared_ptr<matlab::engine::StreamBuffer>* output = reinterpret_cast<std::shared_ptr<matlab::engine::StreamBuffer>*>(buffer);
@@ -167,6 +454,81 @@ inline void deleteStreamBufferImpl(void* impl) {
     delete static_cast<std::shared_ptr<matlab::engine::StreamBuffer>*>(impl);
 }
 
+/*** matlab::engine::MATLABEngine ***/
+inline std::vector<matlab::data::Array> matlab::engine::MATLABEngine::feval(const std::u16string &function,
+                                                                     const int nlhs,
+                                                                     const std::vector<matlab::data::Array> &args,
+                                                                     const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+                                                                     const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    int nrhs = static_cast<int>(args.size());
+
+    matlab::data::impl::ArrayImpl** plhs_arr_impl = (nlhs == 0) ? nullptr : (matlab::data::impl::ArrayImpl**) malloc(sizeof(matlab::data::impl::ArrayImpl*) * nlhs);
+    std::unique_ptr<matlab::data::impl::ArrayImpl*, void(*)(matlab::data::impl::ArrayImpl**)> plhs_impl_guard(plhs_arr_impl, &implDeleter);
+
+    matlab::data::impl::ArrayImpl** args_arr_impl = (nrhs == 0) ? nullptr : (matlab::data::impl::ArrayImpl**) malloc(sizeof(matlab::data::impl::ArrayImpl*) * nrhs);
+    std::unique_ptr<matlab::data::impl::ArrayImpl*, void(*)(matlab::data::impl::ArrayImpl**)> args_impl_guard(args_arr_impl, &implDeleter);
+
+    void** plhs_impl = reinterpret_cast<void**>(plhs_arr_impl);
+    void** args_impl = reinterpret_cast<void**>(args_arr_impl);
+
+    arrayToImpl(nrhs, args_impl, args);
+
+    void* mexcept = nullptr;
+
+    std::string function_utf8 = matlab::engine::convertUTF16StringToUTF8String(function);
+
+    void* output_ = output ? new std::shared_ptr<StreamBuffer>(std::move(output)) : nullptr;
+    void* error_ = error ? new std::shared_ptr<StreamBuffer>(std::move(error)) : nullptr;
+
+    int errID = 0;
+    mexApiFeval(pImpl, nlhs, plhs_impl, nrhs, args_impl, function_utf8.c_str(), &errID, &mexcept, output_, error_, &writeToStreamBuffer, &deleteStreamBufferImpl);
+
+    throwIfError(errID, mexcept);
+
+    std::vector<matlab::data::Array> plhs;
+    plhs.reserve(nlhs);
+    implToArray(nlhs, plhs_impl, plhs);
+
+    return plhs;
+}
+
+inline std::vector<matlab::data::Array> matlab::engine::MATLABEngine::feval(const std::string &function,
+                                                                     const int nlhs,
+                                                                     const std::vector<matlab::data::Array> &args,
+                                                                     const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+                                                                     const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    return feval(std::u16string(function.begin(), function.end()), nlhs, args, output, error);
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::feval(const std::u16string &function,
+                                                        const std::vector<matlab::data::Array> &args,
+                                                        const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+                                                        const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+
+    std::vector<matlab::data::Array> out_vec = feval(function, 1, args, output, error);
+    return out_vec.at(0);
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::feval(const std::string &function,
+                                                        const std::vector<matlab::data::Array> &args,
+                                                        const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+                                                        const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    return feval(std::u16string(function.begin(), function.end()), args, output, error);
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::feval(const std::u16string &function,
+                                                        const matlab::data::Array &arg,
+                                                        const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+                                                        const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    return feval(function, std::vector<matlab::data::Array>({ arg }), output, error);
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::feval(const std::string &function,
+                                                        const matlab::data::Array &arg,
+                                                        const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+                                                        const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    return feval(std::u16string(function.begin(), function.end()), std::vector<matlab::data::Array>({arg}), output, error);
+}
 
 template<class ReturnType, typename...RhsArgs>
 ReturnType matlab::engine::MATLABEngine::feval(const std::u16string &function,
@@ -174,6 +536,7 @@ ReturnType matlab::engine::MATLABEngine::feval(const std::u16string &function,
                                                const std::shared_ptr<StreamBuffer> &error,
                                                RhsArgs&&... rhsArgs) {
     matlab::data::ArrayFactory factory;
+
     std::vector<matlab::data::Array> rhsList({
         detail::createRhs(factory, std::forward<RhsArgs>(rhsArgs))...
     });
@@ -205,11 +568,118 @@ ReturnType matlab::engine::MATLABEngine::feval(const std::string &function,
     return feval<ReturnType>(std::u16string(function.begin(), function.end()), std::forward<RhsArgs>(rhsArgs)...);
 }
 
+inline void matlab::engine::MATLABEngine::eval(const std::u16string &str,
+                                        const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+                                        const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    matlab::data::ArrayFactory factory;
+    auto mStr = factory.createScalar(str);
 
+    feval(matlab::engine::convertUTF8StringToUTF16String("eval"), 0, std::vector<matlab::data::Array>({ mStr }), output, error);
+}
 
+inline matlab::data::Array matlab::engine::MATLABEngine::getVariable(const std::u16string &varName,
+                                                              matlab::engine::WorkspaceType workspaceType) {
+    const char* workspace = (workspaceType == matlab::engine::WorkspaceType::BASE) ? "base" : "global";
+    void* mexcept = nullptr;
 
+    int errID = 0;
+    void* res = mexApiGetVariable(pImpl, workspace, varName.c_str(), &errID, &mexcept);
 
+    throwIfError(errID, mexcept);
 
+    matlab::data::Array ret = getArray(res);
+    return ret;
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::getVariable(const std::string &varName,
+                                                              matlab::engine::WorkspaceType workspaceType) {
+    return getVariable(std::u16string(varName.begin(), varName.end()), workspaceType);
+}
+
+inline void matlab::engine::MATLABEngine::setVariable(const std::u16string &varName,
+                                               const matlab::data::Array &var,
+                                               matlab::engine::WorkspaceType workspaceType) {
+    const char* workspace = (workspaceType == matlab::engine::WorkspaceType::BASE) ? "base" : "global";
+    void* mexcept = nullptr;
+
+    void* varImpl = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(var);
+
+    int errID = 0;
+    mexApiSetVariable(pImpl, varImpl, workspace, varName.c_str(), &errID, &mexcept);
+
+    throwIfError(errID, mexcept);
+}
+
+inline void matlab::engine::MATLABEngine::setVariable(const std::string &varName,
+                                               const matlab::data::Array &var,
+                                               matlab::engine::WorkspaceType workspaceType) {
+    setVariable(std::u16string(varName.begin(), varName.end()), var, workspaceType);
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::getProperty(const matlab::data::Array &object,
+                                                              size_t index,
+                                                              const std::u16string &propertyName) {
+    void* mexcept = nullptr;
+    void* objImpl = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(object);
+
+    int errID = 0;
+    void* impl = mexApiGetProperty(pImpl, objImpl, index, propertyName.c_str(), &errID, &mexcept);
+
+    throwIfError(errID, mexcept);
+
+    return matlab::data::detail::Access::createObj<matlab::data::Array>(reinterpret_cast<matlab::data::impl::ArrayImpl*>(impl));
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::getProperty(const matlab::data::Array &object,
+                                                              size_t index,
+                                                              const std::string &propertyName) {
+    return getProperty(object, index, std::u16string(propertyName.begin(), propertyName.end()));
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::getProperty(const matlab::data::Array &object,
+                                                              const std::u16string &propertyName) {
+    return getProperty(object, 0, propertyName);
+}
+
+inline matlab::data::Array matlab::engine::MATLABEngine::getProperty(const matlab::data::Array &object,
+                                                              const std::string &propertyName) {
+    return getProperty(object, 0, std::u16string(propertyName.begin(), propertyName.end()));
+}
+
+inline void matlab::engine::MATLABEngine::setProperty(matlab::data::Array &object,
+                                               size_t index,
+                                               const std::u16string &propertyName,
+                                               const matlab::data::Array &value) {
+    void* mexcept = nullptr;
+    void* objImpl = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(object);
+    void* propertyImpl = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(value);
+
+    int errID = 0;
+    void* impl = mexApiSetProperty(pImpl, objImpl, index, propertyName.c_str(), propertyImpl, &errID, &mexcept);
+
+    throwIfError(errID, mexcept);
+
+    object = matlab::data::detail::Access::createObj<matlab::data::Array>(reinterpret_cast<matlab::data::impl::ArrayImpl*>(impl));
+}
+
+inline void matlab::engine::MATLABEngine::setProperty(matlab::data::Array &object,
+                                               size_t index,
+                                               const std::string &propertyName,
+                                               const matlab::data::Array &value) {
+    setProperty(object, index, std::u16string(propertyName.begin(), propertyName.end()), value);
+}
+
+inline void matlab::engine::MATLABEngine::setProperty(matlab::data::Array &object,
+                                               const std::u16string &propertyName,
+                                               const matlab::data::Array &value) {
+    setProperty(object, 0, propertyName, value);
+}
+
+inline void matlab::engine::MATLABEngine::setProperty(matlab::data::Array &object,
+                                               const std::string &propertyName,
+                                               const matlab::data::Array &value) {
+    setProperty(object, 0, std::u16string(propertyName.begin(), propertyName.end()), value);
+}
 
 
 namespace {
@@ -317,7 +787,93 @@ namespace {
     }
 }
 
+inline matlab::engine::FutureResult<std::vector<matlab::data::Array>> matlab::engine::MATLABEngine::fevalAsync(const std::u16string &function,
+    const int nlhs,
+    const std::vector<matlab::data::Array> &args,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
 
+    int nrhs = static_cast<int>(args.size());
+
+    matlab::data::impl::ArrayImpl** args_arr_impl = (nrhs == 0) ? nullptr : (matlab::data::impl::ArrayImpl**) malloc(sizeof(matlab::data::impl::ArrayImpl*) * nrhs);
+    std::unique_ptr<matlab::data::impl::ArrayImpl*, void(*)(matlab::data::impl::ArrayImpl**)> args_impl_guard(args_arr_impl, &implDeleter);
+
+    void** args_impl = reinterpret_cast<void**>(args_arr_impl);
+
+    arrayToImpl(nrhs, args_impl, args);
+
+    std::promise<std::vector<matlab::data::Array> >* p = new std::promise<std::vector<matlab::data::Array> >();
+    std::future<std::vector<matlab::data::Array> > f = p->get_future();
+
+    std::string function_utf8 = matlab::engine::convertUTF16StringToUTF8String(function);
+
+    void* output_ = output ? new std::shared_ptr<StreamBuffer>(std::move(output)) : nullptr;
+    void* error_ = error ? new std::shared_ptr<StreamBuffer>(std::move(error)) : nullptr;
+
+    uintptr_t handle = mexApiFevalAsync(pImpl, nlhs, nrhs, args_impl, function_utf8.c_str(), false, &set_feval_promise_data, &set_feval_promise_exception, p, output_, error_, &writeToStreamBuffer, &deleteStreamBufferImpl);
+
+    return matlab::engine::FutureResult<std::vector<matlab::data::Array>>(std::move(f), std::make_shared<matlab::engine::TaskReference>(handle, mexApiCancelFevalWithCompletion));
+}
+
+
+inline matlab::engine::FutureResult<std::vector<matlab::data::Array>> matlab::engine::MATLABEngine::fevalAsync(const std::string &function,
+    const int nlhs,
+    const std::vector<matlab::data::Array> &args,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    return fevalAsync(std::u16string(function.begin(), function.end()), nlhs, args, output, error);
+}
+
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::fevalAsync(const std::u16string &function,
+    const std::vector<matlab::data::Array> &args,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    int nrhs = static_cast<int>(args.size());
+
+    matlab::data::impl::ArrayImpl** args_arr_impl = (nrhs == 0) ? nullptr : (matlab::data::impl::ArrayImpl**) malloc(sizeof(matlab::data::impl::ArrayImpl*) * nrhs);
+    std::unique_ptr<matlab::data::impl::ArrayImpl*, void(*)(matlab::data::impl::ArrayImpl**)> args_impl_guard(args_arr_impl, &implDeleter);
+
+    void** args_impl = reinterpret_cast<void**>(args_arr_impl);
+
+    arrayToImpl(nrhs, args_impl, args);
+
+    std::promise<matlab::data::Array>* p = new std::promise<matlab::data::Array>();
+    std::future<matlab::data::Array> f = p->get_future();
+
+    std::string function_utf8 = matlab::engine::convertUTF16StringToUTF8String(function);
+
+    void* output_ = output ? new std::shared_ptr<StreamBuffer>(std::move(output)) : nullptr;
+    void* error_ = error ? new std::shared_ptr<StreamBuffer>(std::move(error)) : nullptr;
+
+    uintptr_t handle = mexApiFevalAsync(pImpl, 1, nrhs, args_impl, function_utf8.c_str(), true, &set_feval_promise_data, &set_feval_promise_exception, p, output_, error_, &writeToStreamBuffer, &deleteStreamBufferImpl);
+
+    return matlab::engine::FutureResult<matlab::data::Array>(std::move(f), std::make_shared<matlab::engine::TaskReference>(handle, mexApiCancelFevalWithCompletion));
+}
+
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::fevalAsync(const std::string &function,
+    const std::vector<matlab::data::Array> &args,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    return fevalAsync(std::u16string(function.begin(), function.end()), args, output, error);
+}
+
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::fevalAsync(const std::u16string &function,
+    const matlab::data::Array &arg,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    return fevalAsync(function, std::vector<matlab::data::Array>({ arg }), output, error);
+}
+
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::fevalAsync(const std::string &function,
+    const matlab::data::Array &arg,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    return fevalAsync(std::u16string(function.begin(), function.end()), arg, output, error);
+}
 
 template<class ReturnType, typename...RhsArgs>
 matlab::engine::FutureResult<ReturnType> matlab::engine::MATLABEngine::fevalAsync(const std::u16string &function,
@@ -345,7 +901,7 @@ matlab::engine::FutureResult<ReturnType> matlab::engine::MATLABEngine::fevalAsyn
     // auto convertToResultType = [copyableF = std::move(f)]()->ReturnType { ....... };
     auto copyableF = std::make_shared<FutureResult<std::vector<matlab::data::Array>>>(std::move(f));
     auto convertToResultType = [copyableF]() ->ReturnType {
-        std::vector<matlab::data::Array> vec = copyableF->get();
+        std::vector<matlab::data::Array> vec = copyableF->future.get();
         detail::createLhs<ReturnType> lhsFactory;
         return lhsFactory(std::move(vec));
     };
@@ -375,6 +931,109 @@ matlab::engine::FutureResult<ReturnType> matlab::engine::MATLABEngine::fevalAsyn
     return fevalAsync<ReturnType>(std::u16string(function.begin(), function.end()), std::forward<RhsArgs>(rhsArgs)...);
 }
 
+inline matlab::engine::FutureResult<void> matlab::engine::MATLABEngine::evalAsync(const std::u16string &str,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &output,
+    const std::shared_ptr<matlab::engine::StreamBuffer> &error) {
+    std::promise<void>* p = new std::promise<void>();
+    std::future<void> f = p->get_future();
+    void* output_ = output ? new std::shared_ptr<StreamBuffer>(std::move(output)) : nullptr;
+    void* error_ = error ? new std::shared_ptr<StreamBuffer>(std::move(error)) : nullptr;
+    uintptr_t handle = mexApiEvalAsync(pImpl, str.c_str(), &set_eval_promise_data, &set_eval_promise_exception, p, output_, error_, &writeToStreamBuffer, &deleteStreamBufferImpl);
+    return matlab::engine::FutureResult<void>(std::move(f), std::make_shared<matlab::engine::TaskReference>(handle, mexApiCancelFevalWithCompletion));
+}
 
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::getVariableAsync(const std::u16string &varName,
+    WorkspaceType workspaceType) {
+    std::promise<matlab::data::Array>* p = new std::promise<matlab::data::Array>();
+    std::future<matlab::data::Array> f = p->get_future();
+    const char* workspace = (workspaceType == matlab::engine::WorkspaceType::BASE) ? "base" : "global";
+    uintptr_t handle = mexApiGetVariableAsync(pImpl, workspace, varName.c_str(), &set_feval_promise_data, &set_feval_promise_exception, p);
+    return matlab::engine::FutureResult<matlab::data::Array>(std::move(f), std::make_shared<matlab::engine::TaskReference>(handle, mexApiCancelFevalWithCompletion));
+}
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::getVariableAsync(const std::string &varName,
+    WorkspaceType workspaceType) {
+    return getVariableAsync(std::u16string(varName.begin(), varName.end()), workspaceType);
+}
+
+inline matlab::engine::FutureResult<void> matlab::engine::MATLABEngine::setVariableAsync(const std::u16string &varName,
+    const matlab::data::Array &var,
+    WorkspaceType workspaceType) {
+    std::promise<void>* p = new std::promise<void>();
+    std::future<void> f = p->get_future();
+    const char* workspace = (workspaceType == matlab::engine::WorkspaceType::BASE) ? "base" : "global";
+    matlab::data::impl::ArrayImpl* varImpl = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(var);
+    uintptr_t handle = mexApiSetVariableAsync(pImpl, varImpl, workspace, varName.c_str(), &set_feval_promise_data, &set_feval_promise_exception, p);
+    return matlab::engine::FutureResult<void>(std::move(f), std::make_shared<matlab::engine::TaskReference>(handle, mexApiCancelFevalWithCompletion));
+}
+
+inline matlab::engine::FutureResult<void> matlab::engine::MATLABEngine::setVariableAsync(const std::string &varName,
+    const matlab::data::Array &var,
+    WorkspaceType workspaceType) {
+    return setVariableAsync(std::u16string(varName.begin(), varName.end()), var, workspaceType);
+}
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::getPropertyAsync(const matlab::data::Array &object,
+    size_t index,
+    const std::u16string &propertyName) {
+    std::promise<matlab::data::Array>* p = new std::promise<matlab::data::Array>();
+    std::future<matlab::data::Array> f = p->get_future();
+    matlab::data::impl::ArrayImpl* objectImpl = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(object);
+    uintptr_t handle = mexApiGetPropertyAsync(pImpl, objectImpl, index, propertyName.c_str(), &set_feval_promise_data, &set_feval_promise_exception, p);
+    return matlab::engine::FutureResult<matlab::data::Array>(std::move(f), std::make_shared<matlab::engine::TaskReference>(handle, mexApiCancelFevalWithCompletion));
+}
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::getPropertyAsync(const matlab::data::Array &object,
+    size_t index,
+    const std::string &propertyName) {
+    return getPropertyAsync(object, index, std::u16string(propertyName.begin(), propertyName.end()));
+}
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::getPropertyAsync(const matlab::data::Array &object,
+    const std::u16string &propertyName) {
+    return getPropertyAsync(object, 0, propertyName);
+}
+
+inline matlab::engine::FutureResult<matlab::data::Array> matlab::engine::MATLABEngine::getPropertyAsync(const matlab::data::Array &object,
+    const std::string &propertyName) {
+    return getPropertyAsync(object, std::u16string(propertyName.begin(), propertyName.end()));
+}
+
+inline matlab::engine::FutureResult<void> matlab::engine::MATLABEngine::setPropertyAsync(matlab::data::Array &object,
+    size_t index,
+    const std::u16string &propertyName,
+    const matlab::data::Array &value) {
+    std::promise<matlab::data::Array>* p = new std::promise<matlab::data::Array>();
+    std::future<matlab::data::Array> f = p->get_future();
+    matlab::data::impl::ArrayImpl* objectImpl = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(object);
+    matlab::data::impl::ArrayImpl* propImpl = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(value);
+    uintptr_t handle = mexApiSetPropertyAsync(pImpl, objectImpl, index, propertyName.c_str(), propImpl, &set_feval_promise_data, &set_feval_promise_exception, p);
+    auto copyableF = std::make_shared<std::future<matlab::data::Array>>(std::move(f));
+    auto convertToResultType = [&object, copyableF]() {
+        matlab::data::Array vec = copyableF->get();
+        object = std::move(vec);
+    };
+    std::future<void> future = std::async(std::launch::deferred, std::move(convertToResultType));
+    return FutureResult<void>(std::move(future), std::make_shared<matlab::engine::TaskReference>(handle, mexApiCancelFevalWithCompletion));
+}
+
+inline matlab::engine::FutureResult<void> matlab::engine::MATLABEngine::setPropertyAsync(matlab::data::Array &object,
+    size_t index,
+    const std::string &propertyName,
+    const matlab::data::Array &value) {
+    return setPropertyAsync(object, index, std::u16string(propertyName.begin(), propertyName.end()), value);
+}
+
+inline matlab::engine::FutureResult<void> matlab::engine::MATLABEngine::setPropertyAsync(matlab::data::Array &object,
+    const std::u16string &propertyName,
+    const matlab::data::Array &value) {
+    return setPropertyAsync(object, 0, propertyName, value);
+}
+
+inline matlab::engine::FutureResult<void> matlab::engine::MATLABEngine::setPropertyAsync(matlab::data::Array &object,
+    const std::string &propertyName,
+    const matlab::data::Array &value) {
+    return setPropertyAsync(object, std::u16string(propertyName.begin(), propertyName.end()), value);
+}
 
 #endif

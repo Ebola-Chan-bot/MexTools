@@ -129,6 +129,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <EnableModules>true</EnableModules>
+      <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -153,6 +154,7 @@
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <EnableModules>true</EnableModules>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -170,7 +172,6 @@
   <ItemGroup>
     <ClCompile Include="Mex实现.cpp" />
     <ClCompile Include="Mex工具.cpp" />
-    <ClCompile Include="Mex类型.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\libMatlabDataArray.lib" />

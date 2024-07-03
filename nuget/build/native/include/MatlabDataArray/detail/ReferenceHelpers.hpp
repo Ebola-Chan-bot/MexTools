@@ -99,7 +99,6 @@ namespace matlab {
                   default:
                     throw TypeMismatchException(std::string("Can't convert this element"));
                 }
-                return T();
             }
 
             template <>
@@ -299,7 +298,6 @@ namespace matlab {
             inline typename std::enable_if<std::is_same<MATLABString, U>::value, std::string>::type getString(ReferenceImpl* impl) {
                 const char16_t* str = nullptr;
                 size_t strlen = 0;
-                bool missing = false;
                 typedef int(*StringGetValueFcnPtr)(ReferenceImpl* impl, const char16_t**, size_t*);
                 static const StringGetValueFcnPtr fcn = resolveFunction<StringGetValueFcnPtr>
                     (FunctionType::STRING_GET_VALUE);

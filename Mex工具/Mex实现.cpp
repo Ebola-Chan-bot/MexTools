@@ -1,151 +1,62 @@
 #include "Mex实现.h"
-#include "cppmex/detail/mexErrorDispatch.hpp"
-#include "cppmex/detail/mexExceptionImpl.hpp"
 #include "Mex工具.h"
-void* mexCreateMexFunction(void (*callbackErrHandler)(const char*, const char*)) {
-	try {
-		matlab::mex::Function* mexFunc = 创建Mex函数();
-		return mexFunc;
-	}
-	catch (...) {
-		mexHandleException(callbackErrHandler);
-		return nullptr;
+#include<excpt.h>
+namespace Mex工具 {
+	matlab::engine::MATLABEngine& MATLAB引擎;
+	namespace 内部
+	{
+		std::map<void*, std::move_only_function<void(void*)const>>自动析构表;
 	}
 }
-std::unordered_map<void*, void(*)(void*)>Mex工具::内部::自动析构表;
-void 安全自动析构()noexcept
+static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
 {
-	for (const std::pair<void*, void(*)(void*)> 析构 : Mex工具::内部::自动析构表)
-		__try
-	{		
-		析构.second(析构.first);	
+	__try
+	{
+		执行(outputs, inputs);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER) {}
-}
-void mexDestroyMexFunction(void* mexFunc,
-	void (*callbackErrHandler)(const char*, const char*)) {
-	matlab::mex::Function* mexFunction = reinterpret_cast<matlab::mex::Function*>(mexFunc);
-	try {
-		安全自动析构();
-		//Mex函数本身必须是最后一个被析构的，因此不能放在自动析构表里
-		销毁Mex函数(mexFunction);
-	}
-	catch (...) {
-		mexHandleException(callbackErrHandler);
-		return;
+	__except(EXCEPTION_EXECUTE_HANDLER)
+	{
+		throw Mex工具::Mex异常::意外的SEH异常;
 	}
 }
-void mexFunctionAdapter(int nlhs_,
-	int nlhs,
-	int nrhs,
-	void* vrhs[],
-	void* mFun,
-	void (*callbackOutput)(int, void**),
-	void (*callbackErrHandler)(const char*, const char*)) {
-
-	matlab::mex::Function* mexFunction = reinterpret_cast<matlab::mex::Function*>(mFun);
-
-	std::vector<matlab::data::Array> edi_prhs;
-	edi_prhs.reserve(nrhs);
-	implToArray(nrhs, vrhs, edi_prhs);
-
-	std::vector<matlab::data::Array> edi_plhs(nlhs);
-	matlab::mex::ArgumentList outputs(edi_plhs.begin(), edi_plhs.end(), nlhs_);
-	matlab::mex::ArgumentList inputs(edi_prhs.begin(), edi_prhs.end(), nrhs);
-
-	try {
-		(*mexFunction)(outputs, inputs);
+static void Cpp安全(ArgumentList& outputs, ArgumentList& inputs)
+{
+	try
+	{
+		SEH安全(outputs, inputs);
 	}
-	catch (...) {
-		mexHandleException(callbackErrHandler);
-		return;
-	}
-
-	arrayToImplOutput(nlhs, edi_plhs, callbackOutput);
-}
-matlab::mex::Function::Function() {
-	functionImpl = mexGetFunctionImpl();
-}
-void throwIfError(int errID, void* mexcept) {
-	matlab::mex::detail::ErrorType errorID(static_cast<matlab::mex::detail::ErrorType>(errID));
-	switch (errorID) {
-	case matlab::mex::detail::ErrorType::NoException:
-		break;
-	case matlab::mex::detail::ErrorType::RuntimeError: {
-		matlab::data::impl::ArrayImpl* impl = reinterpret_cast<matlab::data::impl::ArrayImpl*>(mexcept);
-		matlab::data::Array exArr(matlab::data::detail::Access::createObj<matlab::data::Array>(impl));
-		matlab::data::StructArray sArr(exArr);
-		matlab::data::TypedArray<int> errStatus = sArr[0][std::string("status")];
-		int rErrID_ = errStatus[0];
-		matlab::mex::detail::ErrorType rErrorID(static_cast<matlab::mex::detail::ErrorType>(rErrID_));
-		switch (rErrorID) {
-		case matlab::mex::detail::ErrorType::SyntaxError: {
-			matlab::engine::MATLABSyntaxException exp = matlab::engine::detail::createMATLABSyntaxException(sArr);
-			throw exp;
-		}
-		case matlab::mex::detail::ErrorType::ExecutionError: {
-			matlab::engine::MATLABExecutionException exp = matlab::engine::detail::createMATLABExecutionException(sArr);
-			throw exp;
-		}
-		case matlab::mex::detail::ErrorType::EngineError: {
-			matlab::engine::MATLABException exp = matlab::engine::detail::createMATLABException(sArr);
-			throw exp;
-		}
-		case matlab::mex::detail::ErrorType::InterruptedError: {
-			std::string msg = "MATLAB command was interrupted.";
-			throw matlab::engine::InterruptedException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String(msg));
-		}
-		default:
-			throw matlab::engine::MATLABException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String("Runtime Error"));
+	catch (Mex工具::Mex异常 e)
+	{
+		if (e == Mex工具::Mex异常::意外的SEH异常)
+			Mex工具::MATLAB引擎.feval<void>("error", String(u"MexTool:SEHException"), String(u"发生了意外的SEH异常"));
+		else
+		{
+			const std::wstring 错误消息 = (std::wostringstream(L"发生了意外的Mex异常，错误代码：") << (uint16_t)e).str();
+			Mex工具::MATLAB引擎.feval<void>("error", String(u"MexTool:MexException"), String((char16_t*)错误消息.c_str()));
 		}
 	}
-	case matlab::mex::detail::ErrorType::ThreadError: {
-		const std::string msg = "Synchronous version of MATLAB Engine functions must be called from the thread that called the MEX function.";
-		throw matlab::engine::MATLABException("MATLAB:mex:CppMexThreadMismatch", matlab::engine::convertUTF8StringToUTF16String(msg));
-	}
-	case matlab::mex::detail::ErrorType::OutOfMemory: {
-		std::string outOfMemoryError = "Not enough memory available to support the request.";
-		throw matlab::OutOfMemoryException(outOfMemoryError);
-	}
-	case matlab::mex::detail::ErrorType::CancelError: {
-		std::string msg = "MATLAB command was cancelled.";
-		throw matlab::engine::CancelledException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String(msg));
-	}
-	case matlab::mex::detail::ErrorType::SystemError: {
-		std::string msg = "Unexpected exception caught in feval.";
-		throw matlab::engine::MATLABException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String(msg));
-	}
-	default:
-		throw matlab::engine::MATLABException("MATLAB:mex:CppMexException", matlab::engine::convertUTF8StringToUTF16String("Error"));
+	catch (...)
+	{
+		Mex工具::MATLAB引擎.feval<void>("error", String(u"MexTool:CppException"), String(u"发生了意外的C++异常"));
 	}
 }
-void matlab::mex::Function::mexLock() {
-	int errID = 0;
-	cppmex_mexLock_with_error_check(functionImpl, &errID);
-	throwIfError(errID, nullptr);
-}
-void matlab::mex::Function::mexUnlock() {
-	int errID = 0;
-	cppmex_mexUnlock_with_error_check(functionImpl, &errID);
-	throwIfError(errID, nullptr);
-}
-matlab::mex::Function::~Function() NOEXCEPT_FALSE {
-	mexDestroyFunctionImpl(functionImpl);
-}
-std::shared_ptr<matlab::engine::MATLABEngine> matlab::mex::Function::getEngine() {
-	void* engine = cppmex_getEngine(functionImpl);
-	return std::make_shared<matlab::engine::MATLABEngine>(engine);
-}
-std::u16string matlab::mex::Function::getFunctionName() const {
-	const char16_t* fn = cppmex_getFunctionName(functionImpl);
-
-	if (!fn) {
-		std::string outOfMemoryError = "Not enough memory available to support the request.";
-		throw matlab::engine::Exception(outOfMemoryError);
+struct MexFunction :Function
+{
+	MexFunction()
+	{
+		Mex工具::MATLAB引擎 = *getEngine();
+		初始化();
 	}
-
-	char16_t* fName = const_cast<char16_t*>(fn);
-	std::u16string fNameStr = std::u16string(fName);
-	mexReleaseMemory(nullptr, fName);
-	return fNameStr;
-}
+	void operator()(ArgumentList outputs, ArgumentList inputs)override
+	{
+		SEH安全(outputs, inputs);
+	}
+	virtual ~MexFunction()
+	{
+		清理();
+		for (const auto& a : Mex工具::内部::自动析构表)
+			a.second(a.first);
+	}
+};
+//未使用，仅用于确保这些函数被静态库导出
+constexpr volatile void* 导出列表[] = { mexCreateMexFunction, mexDestroyMexFunction ,mexFunctionAdapter };

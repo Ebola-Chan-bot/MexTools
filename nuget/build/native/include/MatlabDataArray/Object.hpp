@@ -1,9 +1,14 @@
-/* Copyright 2014-2020 The MathWorks, Inc. */
+/* Copyright 2014-2023 The MathWorks, Inc. */
 
 #ifndef MATLAB_DATA_OBJECT_HPP
 #define MATLAB_DATA_OBJECT_HPP
 
-#include "detail/object_interface.hpp"
+#include "MDArray.hpp"
+#include "Exception.hpp"
+#include "Reference.hpp"
+#include "detail/HelperFunctions.hpp"
+#include "detail/FunctionType.hpp"
+#include "detail/ExceptionHelpers.hpp"
 
 #include <memory>
 
@@ -11,6 +16,7 @@ namespace matlab {
     namespace data {
         namespace impl {
             class ObjectImpl;
+            class ReferenceImpl;
         }
         namespace detail {
             class Access;

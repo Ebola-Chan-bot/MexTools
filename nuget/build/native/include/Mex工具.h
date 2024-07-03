@@ -1,9 +1,8 @@
 #pragma once
-#include"Mex类型.h"
+#include<Mex类型.h>
 #include<array>
+#include<map>
 #include<Windows.h>
-using namespace matlab::data;
-using namespace matlab::mex;
 namespace Mex工具
 {
 	enum class Mex异常 :uint8_t
@@ -22,21 +21,22 @@ namespace Mex工具
 		此Array不能拷出为char,
 		此Array不能拷出为wchar_t,
 		稀疏数组不能取得指针,
-		不能从空数组取得标量
+		不能从空数组取得标量,
+		意外的SEH异常,
 	};
 	//这里使用static而不是extern，因为从其它编译单元链接的变量不一定能在DllMain阶段完成初始化，会造成意外错误。
-	static ArrayFactory 数组工厂;
+	static matlab::data::ArrayFactory 数组工厂;
 	//可以作为MATLAB数组元素的类型
 	template<typename T>
-	concept MATLAB元素类型 = requires{GetArrayType<std::remove_cvref_t<T>>::type; };
+	concept MATLAB元素类型 = requires{matlab::data::GetArrayType<std::remove_cvref_t<T>>::type; };
 	template<MATLAB元素类型 T>
 	constexpr bool 稀疏 = false;
 	template<MATLAB元素类型 T>
-	constexpr bool 稀疏<SparseArray<T>> = true;
+	constexpr bool 稀疏<matlab::data::SparseArray<T>> = true;
 	template<typename T>
-	concept MATLAB复杂元素 = std::_Is_any_of_v<std::remove_cvref_t<T>, Array, Struct, MATLABString, Object> && !稀疏<T>;
+	concept MATLAB复杂元素 = std::_Is_any_of_v<std::remove_cvref_t<T>, matlab::data::Array, matlab::data::Struct, matlab::data::MATLABString, matlab::data::Object> && !稀疏<T>;
 	template<typename T>
-	concept MATLAB简单元素 = MATLAB元素类型<T> && !(MATLAB复杂元素<T> || 稀疏<T> || std::is_same_v<T, Enumeration>);
+	concept MATLAB简单元素 = MATLAB元素类型<T> && !(MATLAB复杂元素<T> || 稀疏<T> || std::is_same_v<T, matlab::data::Enumeration>);
 	template<typename T>
 	concept 迭代器 = requires(T 器) { *(器 + 1); };
 	template<迭代器 T>
@@ -67,85 +67,9 @@ namespace Mex工具
 	concept 非const = !std::is_const_v<T>;
 	template<typename T1, typename T2>
 	concept 只能是 = std::is_same_v<T1, T2>;
-	/*
-* 根据动态类型选择类模板并返回成员
-* MATLAB数组使用一个枚举值指示数组的动态类型。当你试图编写一个泛型函数时，一般来说需要用一个冗长的switch语句将其正确转换为C++静态类型，然后调用对应的函数模板。本函数封装此过程，根据MATLAB动态类型，实例化对应的模板类，取其返回成员。调用方可按需求设计一个模板类来包装类型特定的方法。本文件中的万能转码函数就用此方法实现标量转换，实现方法亦可作为参考示例。
-* @param 模板，必须至少接受一个类型参数作为第一个模板参数，至少包含一个名为“返回”的静态成员，此成员的类型必须与运行时输入的MATLAB类型（即第一个模板参数）无关；如果是静态函数，则函数的所有输入参数和返回值类型必须与运行时输入的MATLAB类型无关。模板的第一个参数应当为所有MATLAB对应类型提供“返回”静态成员，还应当为nullptr_t类型也提供“返回”静态成员——这用于对不支持的MATLAB类型进行异常处理。例如，你可以为nullptr_t类型特化的返回成员提供一个异常输出。
-* @param Ts，将要传递给模板的后续模板参数。如果你提供的模板不具有或具有可选的后续模板参数，则此处的后续模板参数也是可选的。
-* @param 类型，运行时得到的MATLAB动态类型枚举
-* @return 返回模板类名为“返回”的成员
-*/
-	template<template <typename T, typename...Ts>typename 模板, typename...Ts>
-	constexpr auto 动态类型选择模板(ArrayType 类型)
-	{
-		switch (类型)
-		{
-		case ArrayType::LOGICAL:
-			return 模板<bool, Ts...>::返回;
-		case ArrayType::CHAR:
-			return 模板<CHAR16_T, Ts...>::返回;
-		case ArrayType::MATLAB_STRING:
-			return 模板<MATLABString, Ts...>::返回;
-		case ArrayType::DOUBLE:
-			return 模板<double, Ts...>::返回;
-		case ArrayType::SINGLE:
-			return 模板<float, Ts...>::返回;
-		case ArrayType::INT8:
-			return 模板<int8_t, Ts...>::返回;
-		case ArrayType::INT16:
-			return 模板<int16_t, Ts...>::返回;
-		case ArrayType::INT32:
-			return 模板<int32_t, Ts...>::返回;
-		case ArrayType::INT64:
-			return 模板<int64_t, Ts...>::返回;
-		case ArrayType::UINT8:
-			return 模板<uint8_t, Ts...>::返回;
-		case ArrayType::UINT16:
-			return 模板<uint16_t, Ts...>::返回;
-		case ArrayType::UINT32:
-			return 模板<uint32_t, Ts...>::返回;
-		case ArrayType::UINT64:
-			return 模板<uint64_t, Ts...>::返回;
-		case ArrayType::COMPLEX_DOUBLE:
-			return 模板<std::complex<double>, Ts...>::返回;
-		case ArrayType::COMPLEX_SINGLE:
-			return 模板<std::complex<float>, Ts...>::返回;
-		case ArrayType::COMPLEX_INT8:
-			return 模板<std::complex<int8_t>, Ts...>::返回;
-		case ArrayType::COMPLEX_INT16:
-			return 模板<std::complex<int16_t>, Ts...>::返回;
-		case ArrayType::COMPLEX_INT32:
-			return 模板<std::complex<int32_t>, Ts...>::返回;
-		case ArrayType::COMPLEX_INT64:
-			return 模板<std::complex<int64_t>, Ts...>::返回;
-		case ArrayType::COMPLEX_UINT8:
-			return 模板<std::complex<uint8_t>, Ts...>::返回;
-		case ArrayType::COMPLEX_UINT16:
-			return 模板<std::complex<uint16_t>, Ts...>::返回;
-		case ArrayType::COMPLEX_UINT32:
-			return 模板<std::complex<uint32_t>, Ts...>::返回;
-		case ArrayType::COMPLEX_UINT64:
-			return 模板<std::complex<uint64_t>, Ts...>::返回;
-		case ArrayType::CELL:
-			return 模板<Array, Ts...>::返回;
-		case ArrayType::STRUCT:
-			return 模板<Struct, Ts...>::返回;
-		case ArrayType::ENUM:
-			return 模板<Enumeration, Ts...>::返回;
-		case ArrayType::OBJECT:
-			return 模板<Object, Ts...>::返回;
-		case ArrayType::SPARSE_LOGICAL:
-			return 模板<SparseArray<bool>, Ts...>::返回;
-		case ArrayType::SPARSE_DOUBLE:
-			return 模板<SparseArray<double>, Ts...>::返回;
-		case ArrayType::SPARSE_COMPLEX_DOUBLE:
-			return 模板<SparseArray<std::complex<double>>, Ts...>::返回;
-		default:
-			return 模板<void, Ts...>::返回;
-		}
-	}
 	namespace 内部
 	{
+		using namespace matlab::data;
 		template<ArrayType T>struct 动态类型转静态 { using 类型 = void; };
 		template<>struct 动态类型转静态<ArrayType::LOGICAL> { using 类型 = bool; };
 		template<>struct 动态类型转静态<ArrayType::CHAR> { using 类型 = CHAR16_T; };
@@ -364,10 +288,10 @@ namespace Mex工具
 			for (T输出& a : 输出)
 				a = (T输出) * (输入++);
 		}
-		extern std::unordered_map<void*, void(*)(void*)>自动析构表;
+		extern std::map<void*, std::move_only_function<void(void*)const>>自动析构表;
 	}
 	//此using在将动态类型枚举ArrayType转为静态类型
-	template<ArrayType T>
+	template<matlab::data::ArrayType T>
 	using 动态类型转静态 = 内部::动态类型转静态<T>::类型;
 	constexpr uint8_t 类型总数 = 32;
 	//此数组存储了每种动态类型枚举对应的静态类型的尺寸。使用方法示例：类型尺寸[(int)inputs[1].getType()]
@@ -386,21 +310,21 @@ namespace Mex工具
 		数组工厂.createScalar(输入);
 	};
 	template<typename T>
-	concept CanCreateArray = MATLAB元素类型<T> && requires(ArrayDimensions 各维尺寸)
+	concept CanCreateArray = MATLAB元素类型<T> && requires(matlab::data::ArrayDimensions 各维尺寸)
 	{
 		数组工厂.createArray<T>(各维尺寸);
 	};
 
 	//增强功能，可以使用如下三个宏定义在一个MEX文件函数中定义多个API
 
-#define API声明(函数名) void 函数名(ArgumentList& outputs,ArgumentList& inputs)
-#define API索引 constexpr void (*(API[]))(ArgumentList&, ArgumentList&) =
+#define API声明(函数名) void 函数名(matlab::mex::ArgumentList& outputs,matlab::mex::ArgumentList& inputs)
+#define API索引 constexpr void (*(API[]))(matlab::mex::ArgumentList&, matlab::mex::ArgumentList&) =
 #define API调用 const uint8_t 选项=万能转码<uint8_t>(std::move(inputs[0]));if(选项<std::extent_v<decltype(API)>)API[选项](outputs, inputs);else throw Mex异常::不支持的API;
 	/*
 	出错时，将后续返回值设为空数组
 	为了将C++异常传递给MATLAB，我们通常需要将MEX文件函数的第一个返回值保留作为错误代码
 	*/
-	void 异常输出补全(ArgumentList& outputs);
+	void 异常输出补全(matlab::mex::ArgumentList& outputs);
 
 	/*
 	将MATLAB简单类型标量转换为C++类型，自动执行必要的显式转换，还支持MATLAB稀疏矩阵。
@@ -414,8 +338,8 @@ namespace Mex工具
 	const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<typename T>
-		requires (!std::_Is_any_of_v<T, CellArray,std::string>)
-	inline T 万能转码(const Array& 输入)
+		requires (!std::_Is_any_of_v<T, matlab::data::CellArray,std::string>)
+	inline T 万能转码(const matlab::data::Array& 输入)
 	{
 		if (输入.isEmpty())
 			throw Mex异常::不能从空数组取得标量;
@@ -428,34 +352,34 @@ namespace Mex工具
 	const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern String 万能转码<String>(const Array& 输入);
+	extern matlab::data::String 万能转码<matlab::data::String>(const matlab::data::Array& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 MATLABString
 	语法：Mex工具::万能转码<MATLABString>(输入)
 	参数：const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern MATLABString 万能转码<MATLABString>(const Array& 输入);
+	extern matlab::data::MATLABString 万能转码<matlab::data::MATLABString>(const matlab::data::Array& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 CharArray
 	语法：Mex工具::万能转码<CharArray>(输入)
 	参数：const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern CharArray 万能转码<CharArray>(const Array& 输入);
+	extern matlab::data::CharArray 万能转码<matlab::data::CharArray>(const matlab::data::Array& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF8 std::string，使用 Win32 WideCharToMultiByte 执行UTF16到UTF8的转码
 	语法：Mex工具::万能转码(std::move(输入))
 	参数：Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
 	*/
-	std::string 万能转码(Array&& 输入);
+	std::string 万能转码(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串数组或字符行向量元胞数组转换为 UTF16 StringArray。字符行向量将转换为字符串标量，字符串数组和字符行向量元胞数组将转换为各维尺寸相同的字符串数组。
 	语法：Mex工具::万能转码<StringArray>(输入)
 	参数：const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern StringArray 万能转码<StringArray>(const Array& 输入);
+	extern matlab::data::StringArray 万能转码<matlab::data::StringArray>(const matlab::data::Array& 输入);
 	/*
 	将C++类型转换为对应的MATLAB标量，执行必要的显式转换
 	语法：Mex工具::万能转码<T输出>(输入);
@@ -478,7 +402,7 @@ namespace Mex工具
 	返回：MATLAB简单类型标量
 	*/
 	template<MATLAB简单元素 T>
-	inline TypedArray<T>万能转码(T 输入)
+	inline matlab::data::TypedArray<T>万能转码(T 输入)
 	{
 		return 数组工厂.createScalar(输入);
 	}
@@ -490,7 +414,7 @@ namespace Mex工具
 	*/
 	template<MATLAB复杂元素 T>
 		requires CanCreateScalar<T>
-	inline TypedArray<T>万能转码(const T& 输入)
+	inline matlab::data::TypedArray<T>万能转码(const T& 输入)
 	{
 		return 数组工厂.createScalar(输入);
 	}
@@ -500,7 +424,7 @@ namespace Mex工具
 	参数：const void* 输入，任意指针
 	返回：TypedArray<size_t>，与指针数值相等的 MATLAB size_t 标量
 	*/
-	inline TypedArray<size_t>万能转码(const void* 输入)
+	inline matlab::data::TypedArray<size_t>万能转码(const void* 输入)
 	{
 		return 数组工厂.createScalar((size_t)输入);
 	}
@@ -510,9 +434,9 @@ namespace Mex工具
 	参数：const Array& 输入，要包装的MATLAB数组。
 	返回：CellArray，包装了输入数组的元胞标量
 	*/
-	template<typename T = CellArray>
-		requires std::is_same_v<T, CellArray>
-	inline CellArray 万能转码(const Array& 输入)
+	template<typename T = matlab::data::CellArray>
+		requires std::is_same_v<T, matlab::data::CellArray>
+	inline matlab::data::CellArray 万能转码(const matlab::data::Array& 输入)
 	{
 		CellArray 输出 = 数组工厂.createCellArray({ 1 });
 		输出[0] = 输入;
@@ -526,12 +450,12 @@ namespace Mex工具
 	*/
 	template<typename T>
 		requires CanCreateScalar<std::underlying_type_t<T>>
-	TypedArray<std::underlying_type_t<T>> 万能转码(T 输入)
+	matlab::data::TypedArray<std::underlying_type_t<T>> 万能转码(T 输入)
 	{
 		return 数组工厂.createScalar((std::underlying_type_t<T>)输入);
 	}
 	template<typename T>
-	concept MATLAB字符串 = std::_Is_any_of_v<T, CharArray, String, MATLABString, StringArray>;
+	concept MATLAB字符串 = std::_Is_any_of_v<T, matlab::data::CharArray, matlab::data::String, matlab::data::MATLABString, matlab::data::StringArray>;
 	template<MATLAB字符串 T>
 	inline T 万能转码(const char*);
 	/*
@@ -541,10 +465,10 @@ namespace Mex工具
 	返回：CharArray MATLAB UTF16 字符行向量，使用 Win32 MultiByteToWideChar 执行转码
 	*/
 	template<>
-	inline CharArray 万能转码<CharArray>(const char* 输入)
+	inline matlab::data::CharArray 万能转码<matlab::data::CharArray>(const char* 输入)
 	{
 		size_t 长度 = strlen(输入) + 1;
-		buffer_ptr_t<char16_t>缓冲 = 数组工厂.createBuffer<char16_t>(长度);
+		matlab::data::buffer_ptr_t<char16_t>缓冲 = 数组工厂.createBuffer<char16_t>(长度);
 		长度 = MultiByteToWideChar(CP_UTF8, 0, 输入, -1, (wchar_t*)缓冲.get(), 长度) - 1;
 		return 数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
 	}
@@ -555,7 +479,7 @@ namespace Mex工具
 	返回：String MATLAB UTF16 字符串元素，使用 Win32 MultiByteToWideChar 执行转码
 	*/
 	template<>
-	extern String 万能转码<String>(const char* 输入);
+	extern matlab::data::String 万能转码<matlab::data::String>(const char* 输入);
 	/*
 	将C样式UTF8字符串转换为 UTF16 MATLABString
 	语法：Mex工具::万能转码<MATLABString>(输入)
@@ -563,9 +487,9 @@ namespace Mex工具
 	返回：MATLABString，MATLAB UTF16 字符串元素，使用 Win32 MultiByteToWideChar 执行转码
 	*/
 	template<>
-	inline MATLABString 万能转码<MATLABString>(const char* 输入)
+	inline matlab::data::MATLABString 万能转码<matlab::data::MATLABString>(const char* 输入)
 	{
-		return 万能转码<String>(输入);
+		return 万能转码<matlab::data::String>(输入);
 	}
 	/*
 	将C样式UTF8字符串转换为 MATLAB UTF16 StringArray
@@ -574,9 +498,9 @@ namespace Mex工具
 	返回：StringArray MATLAB UTF16 字符串数组，使用 Win32 MultiByteToWideChar 执行转码
 	*/
 	template<>
-	inline StringArray 万能转码<StringArray>(const char* 输入)
+	inline matlab::data::StringArray 万能转码<matlab::data::StringArray>(const char* 输入)
 	{
-		return 数组工厂.createScalar(万能转码<MATLABString>(输入));
+		return 数组工厂.createScalar(万能转码<matlab::data::MATLABString>(输入));
 	}
 	template<MATLAB字符串 T>
 	inline T 万能转码(const wchar_t*);
@@ -587,10 +511,10 @@ namespace Mex工具
 	返回：CharArray MATLAB UTF16 字符行向量
 	*/
 	template<>
-	inline CharArray 万能转码<CharArray>(const wchar_t* 输入)
+	inline matlab::data::CharArray 万能转码<matlab::data::CharArray>(const wchar_t* 输入)
 	{
 		const size_t 字符个数 = wcslen(输入);
-		buffer_ptr_t<char16_t>缓冲 = 数组工厂.createBuffer<char16_t>(字符个数);
+		matlab::data::buffer_ptr_t<char16_t>缓冲 = 数组工厂.createBuffer<char16_t>(字符个数);
 		std::copy_n(输入, 字符个数, 缓冲.get());
 		return 数组工厂.createArrayFromBuffer({ 1,字符个数 }, std::move(缓冲));
 	}
@@ -601,9 +525,9 @@ namespace Mex工具
 	返回：String MATLAB UTF16 字符串元素
 	*/
 	template<>
-	inline String 万能转码<String>(const wchar_t* 输入)
+	inline matlab::data::String 万能转码<matlab::data::String>(const wchar_t* 输入)
 	{
-		return String((char16_t*)输入);
+		return (char16_t*)输入;
 	}
 	/*
 	将C样式 UTF16 wchar_t 字符串转换为 MATLABString。C++ wchar_t 和 MATLAB char16_t 本质上是同一种类型，不需要转码
@@ -612,9 +536,9 @@ namespace Mex工具
 	返回：MATLABString UTF16 字符串元素
 	*/
 	template<>
-	inline MATLABString 万能转码<MATLABString>(const wchar_t* 输入)
+	inline matlab::data::MATLABString 万能转码<matlab::data::MATLABString>(const wchar_t* 输入)
 	{
-		return 万能转码<String>(输入);
+		return 万能转码<matlab::data::String>(输入);
 	}
 	/*
 	将C样式 UTF16 wchar_t 字符串转换为 MATLAB StringArray。C++ wchar_t 和 MATLAB char16_t 本质上是同一种类型，不需要转码
@@ -623,12 +547,12 @@ namespace Mex工具
 	返回：StringArray MATLAB UTF16 字符串数组
 	*/
 	template<>
-	inline StringArray 万能转码<StringArray>(const wchar_t* 输入)
+	inline matlab::data::StringArray 万能转码<matlab::data::StringArray>(const wchar_t* 输入)
 	{
-		return 数组工厂.createScalar(万能转码<MATLABString>(输入));
+		return 数组工厂.createScalar(万能转码<matlab::data::MATLABString>(输入));
 	}
 	//获取MATLAB数组的字节数，即元素字节数×元素个数
-	inline size_t 数组字节数(const Array& 数组)
+	inline size_t 数组字节数(const matlab::data::Array& 数组)
 	{
 		return 动态类型选择模板<内部::数组字节数>(数组.getType())(数组);
 	}
@@ -640,7 +564,7 @@ namespace Mex工具
 	T& 输出，输出迭代器或指针。对于稀疏矩阵，只能输出到指针（定义[]索引操作）；对于满矩阵，可以输出到迭代器。无论哪种，都可以输出到void*。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
 	*/
 	template<非const T>
-	inline void 万能转码(const Array& 输入, T& 输出)
+	inline void 万能转码(const matlab::data::Array& 输入, T& 输出)
 	{
 		动态类型选择模板<内部::数组拷贝, T&>(输入.getType())(输入, 输出);
 	}
@@ -653,7 +577,7 @@ namespace Mex工具
 	*/
 	template<typename T>
 		requires (!(同类迭代器<T, wchar_t> || 同类迭代器<T, std::string> || 同类迭代器<T, char>))
-	inline void 万能转码(const Array& 输入, T&& 输出)
+	inline void 万能转码(const matlab::data::Array& 输入, T&& 输出)
 	{
 		动态类型选择模板<内部::数组拷贝, const T&>(输入.getType())(输入, 输出);
 	}
@@ -666,7 +590,7 @@ namespace Mex工具
 	# 返回值
 	int，输出的UTF8字节数，包括尾随0
 	*/
-	int 万能转码(Array&& 输入, char* const& 输出);
+	int 万能转码(matlab::data::Array&& 输入, char* const& 输出);
 	/*
 	将 MATLAB UTF16 字符行向量、字符串标量或字符向量元胞标量拷出为C样式0结尾的 UTF8 char*
 	语法：Mex工具::万能转码(std::move(输入),输出)
@@ -676,7 +600,7 @@ namespace Mex工具
 	# 返回值
 	int，输出的UTF8字节数，包括尾随0
 	*/
-	inline int 万能转码(Array&& 输入, char*& 输出)
+	inline int 万能转码(matlab::data::Array&& 输入, char*& 输出)
 	{
 		const int 字数 = 万能转码(std::move(输入), (char* const&)输出);
 		输出 += 字数;
@@ -690,25 +614,25 @@ namespace Mex工具
 	同类迭代器<wchar_t> T& 输出迭代器，应接受wchar_t输入，确保有足够大的内存分配。输出的字符串不会在结尾加0。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
 	*/
 	template<同类迭代器<wchar_t> T>
-	void 万能转码(const Array& 输入, T& 输出)
+	void 万能转码(const matlab::data::Array& 输入, T& 输出)
 	{
 		switch (输入.getType())
 		{
-		case ArrayType::CHAR:
+		case matlab::data::ArrayType::CHAR:
 		{
-			const CharArray 字符串(输入);
+			const matlab::data::CharArray 字符串(输入);
 			内部::选择性赋值(std::copy(字符串.cbegin(), 字符串.cend(), 输出), 输出);
 		}
 		break;
-		case ArrayType::MATLAB_STRING:
+		case matlab::data::ArrayType::MATLAB_STRING:
 		{
-			const String 字符串(StringArray(输入)[0]);
+			const matlab::data::String 字符串 = 输入[0];
 			内部::选择性赋值(std::copy(字符串.cbegin(), 字符串.cend(), 输出), 输出);
 		}
 		break;
-		case ArrayType::CELL:
+		case matlab::data::ArrayType::CELL:
 		{
-			const CharArray 字符串(Array(CellArray(输入)[0]));
+			const matlab::data::CharArray 字符串 = 输入[0];
 			内部::选择性赋值(std::copy(字符串.cbegin(), 字符串.cend(), 输出), 输出);
 		}
 		break;
@@ -724,7 +648,7 @@ namespace Mex工具
 	同类迭代器<wchar_t> T&& 输出迭代器，应接受wchar_t输入，确保有足够大的内存分配。输出的字符串不会在结尾加0。如果T不是const，函数返回后，输出迭代器将被指向输出序列的末尾。
 	*/
 	template<同类迭代器<wchar_t> T>
-	inline void 万能转码(const Array& 输入, T&& 输出)
+	inline void 万能转码(const matlab::data::Array& 输入, T&& 输出)
 	{
 		万能转码(输入, (const T&)输出);
 	}
@@ -752,7 +676,7 @@ namespace Mex工具
 		}
 		break;
 		case ArrayType::MATLAB_STRING:
-			for (const String& 字符串 : StringArray(输入))
+			for (const String& 字符串 : StringArray(std::move(输入)))
 				输出++->resize_and_overwrite(字符串.size() * 3 + 1, [&字符串](char* 指针, size_t 尺寸)
 					{
 						return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.c_str(), -1, 指针, 尺寸, nullptr, nullptr) - 1;
@@ -1066,11 +990,11 @@ namespace Mex工具
 	}
 	//将对象指针加入自动析构表。clear mex 时此对象将被自动析构。使用指定的删除器。
 	template<typename T>
-	inline void 自动析构(T* 对象指针, void(*删除器)(T*))noexcept
+	inline void 自动析构(T* 对象指针, std::move_only_function<void(void*)>&& 删除器)noexcept
 	{
-		内部::自动析构表[对象指针] = (void(*)(void*))删除器;
+		内部::自动析构表[对象指针] = std::move(删除器);
 	}
-	//手动析构的对象必须从自动析构表中移除，否则自动析构将发生异常。
+	//此方法用于提示指定对象已被自动析构，从而避免自动析构表重复析构。此方法不负责析构对象本身，对象本身仍由调用方负责析构。
 	inline bool 手动析构(void* 对象指针)noexcept
 	{
 		return 内部::自动析构表.erase(对象指针);
@@ -1080,4 +1004,6 @@ namespace Mex工具
 	{
 		return 内部::自动析构表.contains(对象指针);
 	}
+	//使用此对象调用MATLAB方法。此对象由MEX工具定义，用户可在初始化方法内以及那之后使用，初始化之前不应使用该全局对象。
+	extern matlab::engine::MATLABEngine& MATLAB引擎;
 }

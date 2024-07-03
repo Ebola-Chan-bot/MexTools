@@ -243,8 +243,8 @@ namespace matlab {
              * @throw TypeMismatchException - if the element of the Array does not match <U>
              */
             template <typename U, typename Type = T, typename = typename std::enable_if<std::is_base_of<Array, Type>::value>::type>
-            requires std::is_base_of<Array, U>::value
             operator U() const {
+                static_assert(std::is_base_of<Array, U>::value, "Can only be used to cast to an Array");
                 return detail::castTo<U, is_const_ref>(pImpl);
             }
 

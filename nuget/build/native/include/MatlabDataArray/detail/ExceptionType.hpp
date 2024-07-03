@@ -1,11 +1,10 @@
-/* Copyright 2016-2020 The MathWorks, Inc. */
+/* Copyright 2016-2024 The MathWorks, Inc. */
 
 #ifndef MATLAB_EXCEPTION_TYPE_HPP_
 #define MATLAB_EXCEPTION_TYPE_HPP_
 
 
-namespace matlab {
-namespace data {
+namespace matlab { namespace data {
 enum class ExceptionType : int {
     NoException = 0,
     InvalidArrayIndex,
@@ -36,9 +35,31 @@ enum class ExceptionType : int {
     NumberOfElementsExceedsMaximum,
     InvalidHeterogeneousArray,
     ObjectNotAccessible,
-    InvalidNumberOfElementsProvided
+    InvalidNumberOfElementsProvided,
+    ObjectNotFound,
+    WrongVectorSizeForStruct,
+    PropertyExists,
+    CouldNotCallConstructor,
+    HandleObjectNotFound,
+    InvalidHeterogeneousClass,
+    InvalidHandleObjectType,
+    InvalidClassName,
+    RecursionLimitExceeded,
+    PropertyNotFound,
+    InvalidPropertyValue,
+    FailedToSerializeObject,
+    InvalidEnumerationName,
+    StringIsMissing,
+    UnSuppportedOperation,
+    ObjectSerializationFailed,
+    JavaNotSupported,
+    IllegalFieldName,
+    ZeroBufferSize,
+    BufferSizeTooLarge,
+    ArrayDimensionsExceedBufferSize,
+    InvalidAssignmentForContainerArray,
+    InvalidUTF8Input
 };
-}
-} // namespace matlab
+}} // namespace matlab::data
 
 #endif

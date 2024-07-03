@@ -32,9 +32,6 @@
     <ClCompile Include="Mex实现.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Mex类型.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\libMatlabDataArray.lib" />

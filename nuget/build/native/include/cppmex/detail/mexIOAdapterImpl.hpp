@@ -35,7 +35,7 @@ namespace matlab {
             }
 
             iterator_type end() {
-                return end_;
+                return begin_ + size();
             }
 
             bool empty() {
@@ -54,11 +54,36 @@ namespace matlab {
 
 
 
+inline matlab::data::Array getArray(void* v) {
+    matlab::data::impl::ArrayImpl* impl = reinterpret_cast<matlab::data::impl::ArrayImpl*>(v);
+    if (impl == nullptr)
+        return matlab::data::Array();
+    return matlab::data::detail::Access::createObj<matlab::data::Array>(impl);
+}
 
+inline void implToArray(int na, void* va[], std::vector<matlab::data::Array>& pa) {
+    assert(na == static_cast<int>(pa.capacity()));
 
-void implToArray(int na, void* va[], std::vector<matlab::data::Array>& pa);
+    for(int i = 0; i < na; i++) {
+        matlab::data::impl::ArrayImpl* impl = reinterpret_cast<matlab::data::impl::ArrayImpl*>(va[i]);
+        pa.push_back(matlab::data::detail::Access::createObj<matlab::data::Array>(impl));
+    }
+}
 
-void arrayToImpl(int na, void* va[], const std::vector<matlab::data::Array>& pa);
+inline void arrayToImpl(int na, void* va[], const std::vector<matlab::data::Array>& pa) {
+    for(int i = 0; i < na; i++) {
+        va[i] = matlab::data::detail::Access::getImpl<matlab::data::impl::ArrayImpl>(pa[i]);
+    }
+}
 
-void arrayToImplOutput(int nlhs, std::vector<matlab::data::Array>& edi_plhs, void (*callbackOutput)(int, void**));
+inline void arrayToImplOutput(int nlhs, std::vector<matlab::data::Array>& edi_plhs, void (*callbackOutput)(int, void**)) {
+    assert(nlhs == static_cast<int>(edi_plhs.size()));
+    std::unique_ptr<matlab::data::impl::ArrayImpl*, void(*)(matlab::data::impl::ArrayImpl**)> vlhsPtr(new matlab::data::impl::ArrayImpl*[nlhs], [](matlab::data::impl::ArrayImpl** ptr) {
+        delete[] ptr;
+    });
+    void** vlhs = (void**)vlhsPtr.get();
+    arrayToImpl(nlhs, vlhs, edi_plhs);
+    callbackOutput(nlhs, vlhs);
+}
+
 #endif

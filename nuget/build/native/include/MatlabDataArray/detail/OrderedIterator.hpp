@@ -19,6 +19,7 @@ class RowMajorOrder {
     static void setEnd(const ArrayDimensions& dims,
                        const size_t nDims,
                        std::vector<ptrdiff_t>& index) {
+        (void) nDims;
         index[0] = dims[0];
     }
                        

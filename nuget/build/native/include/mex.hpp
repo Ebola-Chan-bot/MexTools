@@ -1,7 +1,7 @@
 /**
- * Published header for C++ MEX
+ * Published header for C++ MEX Interface Adapter
  *
- * Copyright 2017-2018 The MathWorks, Inc.
+ * Copyright 2024 The MathWorks, Inc.
  */
 
 #if defined(_MSC_VER)
@@ -83,5 +83,7 @@
 #include "cppmex/mexException.hpp"
 #include "cppmex/mexFuture.hpp"
 #include "cppmex/mexTaskReference.hpp"
+
+#include "mex_common_adapter.hpp" //common header files
 
 #endif //__MEX_CPP_PUBLISHED_API_HPP__

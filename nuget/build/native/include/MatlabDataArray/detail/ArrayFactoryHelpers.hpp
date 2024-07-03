@@ -80,11 +80,13 @@ namespace matlab {
                                  &aImpl));
                 auto retVal = Access::createObj<TypedArray<T>>(aImpl);
 
-                auto it = begin;
-                for (auto& elem : retVal) {
-                    elem = *it;
-                    if (++it == end) {
-                        break;
+                if (begin != nullptr) {
+                    auto it = begin;
+                    for (auto& elem : retVal) {
+                        elem = *it;
+                        if (++it == end) {
+                            break;
+                        }
                     }
                 }
                 return retVal;
@@ -109,11 +111,13 @@ namespace matlab {
                                  &aImpl));
                 auto retVal = Access::createObj<TypedArray<typename GetReturnType<T>::type>>(aImpl);
 
-                auto it = begin;
-                for (auto elem : retVal) {
-                    elem = *it;
-                    if (++it == end) {
-                        break;
+                if (begin != nullptr) {
+                    auto it = begin;
+                    for (auto elem : retVal) {
+                        elem = *it;
+                        if (++it == end) {
+                            break;
+                        }
                     }
                 }
                 return retVal;
@@ -142,16 +146,18 @@ namespace matlab {
                 ObjectArray retVal = Access::createObj<ObjectArray>(aImpl);
                 auto temp = retVal.getDimensions();
 
-                auto it = begin;
-                for (auto elem : retVal) {
-                    if (it == end) {
+                if (begin != nullptr) {
+                    auto it = begin;
+                    for (auto elem : retVal) {
+                        if (it == end) {
+                            throwWrongNumberOfElementsException(begin, end, dims);
+                        }
+                        elem = T(*it);
+                        ++it;
+                    }
+                    if (it != end) {
                         throwWrongNumberOfElementsException(begin, end, dims);
                     }
-                    elem = T(*it);
-                    ++it;
-                }
-                if (it != end) {
-                    throwWrongNumberOfElementsException(begin, end, dims);
                 }
                 return retVal;
             }
@@ -162,25 +168,27 @@ namespace matlab {
             createArrayWithIterator(matlab::data::impl::ArrayFactoryImpl* impl, ArrayDimensions dims, ItType begin, ItType end) {
                 matlab::data::impl::ArrayImpl* aImpl = nullptr;
                 typedef int(*CreateArrayWithDimsFcnPtr)(matlab::data::impl::ArrayFactoryImpl*,
-                                                        int,
-                                                        size_t*, 
-                                                        size_t,
-                                                        matlab::data::impl::ArrayImpl**);
+                    int,
+                    size_t*,
+                    size_t,
+                    matlab::data::impl::ArrayImpl**);
                 static const CreateArrayWithDimsFcnPtr fcn = resolveFunction<CreateArrayWithDimsFcnPtr>
                     (FunctionType::CREATE_ARRAY_WITH_DIMS);
                 throwIfError(fcn(impl,
-                                 static_cast<int>(GetArrayType<T>::type),
-                                 &dims[0],
-                                 dims.size(),
-                                 &aImpl));
-                             
+                    static_cast<int>(GetArrayType<T>::type),
+                    &dims[0],
+                    dims.size(),
+                    &aImpl));
+
                 auto retVal = Access::createObj<TypedArray<T>>(aImpl);
 
-                auto it = begin;
-                for (auto elem : retVal) {
-                    elem = T(*it);
-                    if (++it == end) {
-                        break;
+                if (begin != nullptr) {
+                    auto it = begin;
+                    for (auto elem : retVal) {
+                        elem = T(*it);
+                        if (++it == end) {
+                            break;
+                        }
                     }
                 }
                 return retVal;
@@ -209,11 +217,13 @@ namespace matlab {
                                  &aImpl));
                 auto retVal = Access::createObj<TypedArray<MATLABString>>(aImpl);
 
-                auto it = begin;
-                for (auto elem : retVal) {
-                    elem = *it;
-                    if (++it == end) {
-                        break;
+                if (begin != nullptr) {
+                    auto it = begin;
+                    for (auto elem : retVal) {
+                        elem = *it;
+                        if (++it == end) {
+                            break;
+                        }
                     }
                 }
                 return retVal;
@@ -239,15 +249,17 @@ namespace matlab {
                                  dims.size(),
                                  &aImpl));
                 auto retVal = Access::createObj<TypedArray<MATLABString>>(aImpl);
-                
-                auto it = begin;
-                for (auto elem : retVal) {
-                    MATLABString x = *it;
-                    if (x) {
-                        elem = x;
-                    }
-                    if (++it == end) {
-                        break;
+
+                if (begin != nullptr) {
+                    auto it = begin;
+                    for (auto elem : retVal) {
+                        MATLABString x = *it;
+                        if (x) {
+                            elem = x;
+                        }
+                        if (++it == end) {
+                            break;
+                        }
                     }
                 }
                 return retVal;

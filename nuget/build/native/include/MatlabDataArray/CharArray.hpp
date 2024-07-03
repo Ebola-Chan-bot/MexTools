@@ -15,6 +15,7 @@
 #include <memory>
 #include <string>
 
+
 namespace matlab {
     namespace data {
         namespace impl {
@@ -148,6 +149,28 @@ namespace matlab {
                 fcn(detail::Access::getImpl<impl::ArrayImpl>(*this), &str, &strLen);
                 return String(str, strLen);
             }
+
+            /**
+             * Return contents of a CHAR array as a utf8 string
+             *
+             * @return std::string
+             * @throw EOutOfMemory - if the array could not be allocated
+             * @throw FeatureNotSupportedException - if customer code is running version older than 2024b
+             */
+
+            std::string toUTF8() const
+            {
+                const char16_t* strVal = nullptr;
+                size_t strLen = 0;
+                typedef void(*CharArrayGetStringFcnPtr)(impl::ArrayImpl*,
+                                                        const char16_t**,
+                                                        size_t*);
+                static const CharArrayGetStringFcnPtr fcn = detail::resolveFunction<CharArrayGetStringFcnPtr>
+                    (detail::FunctionType::CHAR_ARRAY_GET_STRING);
+                fcn(detail::Access::getImpl<impl::ArrayImpl>(*this), &strVal, &strLen);
+                return detail::toUTF8Helper(strVal, strLen);
+            }
+
 
             /**
              * Return contents of a CHAR array as an ascii string
