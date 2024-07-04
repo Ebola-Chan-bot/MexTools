@@ -9,5 +9,5 @@ void 初始化()
 }
 void 执行(matlab::mex::ArgumentList& 输出, matlab::mex::ArgumentList& 输入)
 {
-	void* a = 输入[0][0];
+	Mex工具::万能转码<int>(std::move(输入[0]));
 }

@@ -113,16 +113,14 @@ namespace Mex工具
 		struct 标量转换
 		{
 			template<typename T>
-			目标类型 operator()(const T& 输入)const
+			目标类型 operator()(const TypedArray<T>&输入)const
 			{
-				return (目标类型)输入[0];
+				return (目标类型)输入[0].operator T();
 			}
-			//能隐式转换的未必能显式转换，所以必须为隐式转换单独特化
 			template<typename T>
-				requires requires(目标类型& 输出, const T& 输入) { 输出 = 输入[0]; }
-			目标类型 operator()(const T& 输入)const
+			目标类型 operator()(const SparseArray<T>& 输入)const
 			{
-				return 输入[0];
+				return (目标类型)输入[0].operator T();
 			}
 		};
 		//输出迭代器必须用引用返回，不然不能满足动态类型选择模板的要求
@@ -320,10 +318,9 @@ namespace Mex工具
 	const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<typename T>
-	inline T 万能转码(const matlab::data::Array& 输入)
+	inline T 万能转码(matlab::data::Array&& 输入)
 	{
-		if constexpr noexcept(return 输入[0])
-			return 输入[0];
+		return matlab::data::apply_visitor(std::move(输入), 内部::标量转换<T>());
 	}
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 String（std::u16string）
@@ -332,27 +329,28 @@ namespace Mex工具
 	const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern matlab::data::String 万能转码<matlab::data::String>(const matlab::data::Array& 输入);
+	extern matlab::data::String 万能转码<matlab::data::String>(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 MATLABString
 	语法：Mex工具::万能转码<MATLABString>(输入)
 	参数：const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern matlab::data::MATLABString 万能转码<matlab::data::MATLABString>(const matlab::data::Array& 输入);
+	extern matlab::data::MATLABString 万能转码<matlab::data::MATLABString>(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 CharArray
 	语法：Mex工具::万能转码<CharArray>(输入)
 	参数：const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<>
-	extern matlab::data::CharArray 万能转码<matlab::data::CharArray>(const matlab::data::Array& 输入);
+	extern matlab::data::CharArray 万能转码<matlab::data::CharArray>(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF8 std::string，使用 Win32 WideCharToMultiByte 执行UTF16到UTF8的转码
 	语法：Mex工具::万能转码(std::move(输入))
 	参数：Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
 	*/
-	std::string 万能转码(matlab::data::Array&& 输入);
+	template<>
+	extern std::string 万能转码<std::string>(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串数组或字符行向量元胞数组转换为 UTF16 StringArray。字符行向量将转换为字符串标量，字符串数组和字符行向量元胞数组将转换为各维尺寸相同的字符串数组。
 	语法：Mex工具::万能转码<StringArray>(输入)

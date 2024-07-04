@@ -11,8 +11,12 @@ namespace Mex工具
 			*头指针 = 数组工厂.createEmptyArray();
 	}
 	template<>
-	String 万能转码<String>(const Array& 输入)
+	String 万能转码<String>(Array&& 输入)
 	{
+		struct
+		{
+
+		}转换器;
 		switch (输入.getType())
 		{
 		case ArrayType::CHAR:
@@ -55,7 +59,8 @@ namespace Mex工具
 			throw Mex异常::此Array不能转换为CharArray;
 		}
 	}
-	std::string 万能转码(Array&& 输入)
+	template<>
+	std::string 万能转码<std::string>(Array&& 输入)
 	{
 		std::string 输出;
 		switch (输入.getType())
