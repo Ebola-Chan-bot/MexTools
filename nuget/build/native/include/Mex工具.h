@@ -113,12 +113,14 @@ namespace Mex工具
 		struct 标量转换
 		{
 			template<typename T>
-			目标类型 operator()(const T&输入)
+			目标类型 operator()(const T& 输入)const
 			{
 				return (目标类型)输入[0];
 			}
+			//能隐式转换的未必能显式转换，所以必须为隐式转换单独特化
 			template<typename T>
-				requires requires(目标类型& 输出, const T& 输入) { 输出 = 输入[0] }
+				requires requires(目标类型& 输出, const T& 输入) { 输出 = 输入[0]; }
+			目标类型 operator()(const T& 输入)const
 			{
 				return 输入[0];
 			}
@@ -306,7 +308,6 @@ namespace Mex工具
 	为了将C++异常传递给MATLAB，我们通常需要将MEX文件函数的第一个返回值保留作为错误代码
 	*/
 	void 异常输出补全(matlab::mex::ArgumentList& outputs);
-
 	/*
 	将MATLAB简单类型标量转换为C++类型，自动执行必要的显式转换，还支持MATLAB稀疏矩阵。
 	语法：Mex工具::万能转码<T>(输入)
@@ -319,12 +320,10 @@ namespace Mex工具
 	const Array& 输入，MATLAB标量常量引用。
 	*/
 	template<typename T>
-		requires (!std::_Is_any_of_v<T, matlab::data::CellArray,std::string>)
 	inline T 万能转码(const matlab::data::Array& 输入)
 	{
-		if (输入.isEmpty())
-			throw Mex异常::不能从空数组取得标量;
-		return 动态类型选择模板<内部::转换结构, T>(输入.getType())(输入);
+		if constexpr noexcept(return 输入[0])
+			return 输入[0];
 	}
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 String（std::u16string）
@@ -535,7 +534,6 @@ namespace Mex工具
 	//获取MATLAB数组的字节数，即元素字节数×元素个数
 	inline size_t 数组字节数(const matlab::data::Array& 数组)
 	{
-		matlab::data::apply_visitor
 		return 动态类型选择模板<内部::数组字节数>(数组.getType())(数组);
 	}
 	/*

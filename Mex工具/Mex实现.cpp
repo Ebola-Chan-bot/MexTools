@@ -35,6 +35,10 @@ static void Cpp安全(ArgumentList& outputs, ArgumentList& inputs)
 			Mex工具::MATLAB引擎.feval<void>("error", String(u"MexTool:MexException"), String((char16_t*)错误消息.c_str()));
 		}
 	}
+	catch(const matlab::mex::Exception& e)
+	{
+		throw e;
+	}
 	catch (...)
 	{
 		Mex工具::MATLAB引擎.feval<void>("error", String(u"MexTool:CppException"), String(u"发生了意外的C++异常"));
