@@ -123,6 +123,15 @@ namespace Mex工具
 				return (目标类型)输入[0].operator T();
 			}
 		};
+		struct 数组拷贝
+		{
+			template<typename 输入类型,typename 输出类型>
+			void operator()(const TypedArray<输入类型>& 输入, 输出类型& 输出)const
+			{
+				for (const 输入类型& a : 输入)
+					*(输出++) = (取迭代器值类型<输出类型>)a;
+			}
+		};
 		//输出迭代器必须用引用返回，不然不能满足动态类型选择模板的要求
 		template<typename T输入, typename T输出>
 		struct 数组拷贝
@@ -219,22 +228,17 @@ namespace Mex工具
 				数组拷贝<T输入, 转指针>::返回(输入, (转指针)输出);
 			}
 		};
-		template<typename T>
 		struct 数组字节数
 		{
-			static size_t 返回(const Array& 输入)
+			template<typename T>
+			size_t operator()(const TypedArray<T>& 输入)const
 			{
 				return 输入.getNumberOfElements() * sizeof(T);
 			}
-		};
-		template<typename T>
-		struct 数组字节数<SparseArray<T>> :数组字节数<T> {};
-		template<>
-		struct 数组字节数<void>
-		{
-			static size_t 返回(const Array& 输入)
+			template<typename T>
+			size_t operator()(const SparseArray<T>& 输入)const
 			{
-				throw Mex异常::不支持的类型;
+				return 输入.getNumberOfElements() * sizeof(T);
 			}
 		};
 		template<typename T>
@@ -315,7 +319,7 @@ namespace Mex工具
 	- 整数转任意类型指针
 	# 参数
 	typename T，转换目标类型，支持所有可从MATLAB简单元素类型显式转换而来的类型
-	const Array& 输入，MATLAB标量常量引用。
+	Array&& 输入，MATLAB标量。函数执行后该对象将变为不可用。
 	*/
 	template<typename T>
 	inline T 万能转码(matlab::data::Array&& 输入)
@@ -326,38 +330,38 @@ namespace Mex工具
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 String（std::u16string）
 	语法：Mex工具::万能转码<String>(输入)
 	# 参数
-	const Array& 输入，MATLAB标量常量引用。
+	Array&& 输入，MATLAB标量。函数执行后该对象将变为不可用。
 	*/
 	template<>
 	extern matlab::data::String 万能转码<matlab::data::String>(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 MATLABString
 	语法：Mex工具::万能转码<MATLABString>(输入)
-	参数：const Array& 输入，MATLAB标量常量引用。
+	参数：Array&& 输入，MATLAB标量。函数执行后该对象将变为不可用。
 	*/
 	template<>
 	extern matlab::data::MATLABString 万能转码<matlab::data::MATLABString>(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF16 CharArray
 	语法：Mex工具::万能转码<CharArray>(输入)
-	参数：const Array& 输入，MATLAB标量常量引用。
+	参数：Array&& 输入，MATLAB标量。函数执行后该对象将变为不可用。
 	*/
 	template<>
 	extern matlab::data::CharArray 万能转码<matlab::data::CharArray>(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串或字符行向量元胞标量转换为 UTF8 std::string，使用 Win32 WideCharToMultiByte 执行UTF16到UTF8的转码
 	语法：Mex工具::万能转码(std::move(输入))
-	参数：Array&& 输入，MATLAB标量右值引用。函数返回后，输入数组将变成不可用。
+	参数：Array&& Array&& 输入，MATLAB标量。函数执行后该对象将变为不可用。
 	*/
 	template<>
 	extern std::string 万能转码<std::string>(matlab::data::Array&& 输入);
 	/*
 	将MATLAB字符行向量、字符串数组或字符行向量元胞数组转换为 UTF16 StringArray。字符行向量将转换为字符串标量，字符串数组和字符行向量元胞数组将转换为各维尺寸相同的字符串数组。
 	语法：Mex工具::万能转码<StringArray>(输入)
-	参数：const Array& 输入，MATLAB标量常量引用。
+	参数：Array&& 输入，MATLAB数组。函数执行后该对象将变为不可用。
 	*/
 	template<>
-	extern matlab::data::StringArray 万能转码<matlab::data::StringArray>(const matlab::data::Array& 输入);
+	extern matlab::data::StringArray 万能转码<matlab::data::StringArray>(matlab::data::Array&& 输入);
 	/*
 	将C++类型转换为对应的MATLAB标量，执行必要的显式转换
 	语法：Mex工具::万能转码<T输出>(输入);
@@ -532,7 +536,7 @@ namespace Mex工具
 	//获取MATLAB数组的字节数，即元素字节数×元素个数
 	inline size_t 数组字节数(const matlab::data::Array& 数组)
 	{
-		return 动态类型选择模板<内部::数组字节数>(数组.getType())(数组);
+		return matlab::data::apply_visitor(数组, 内部::数组字节数());
 	}
 	/*
 	将MATLAB简单数组拷贝到C++迭代器或指针。这里的指针指的是定义了[]索引, ++自增和*解引用运算符的任何类型；迭代器类似于指针，但不需要定义[]索引。从满数组，可以拷贝到迭代器；从稀疏矩阵，可以拷贝到指针。输出的数据类型必须能够从输入类型隐式转换。一个反例是，整数类型不能隐式转换为指针类型，因此接受指针的迭代器不能在此处使用。从任意数组可以拷贝到void*，不会进行任何类型转换或解析，直接拷贝原始字节。
