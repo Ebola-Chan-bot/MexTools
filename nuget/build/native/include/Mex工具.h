@@ -123,75 +123,17 @@ namespace Mex工具
 				return (目标类型)输入[0].operator T();
 			}
 		};
+		template<typename 输出迭代器>
 		struct 数组拷贝
 		{
-			template<typename 输入类型,typename 输出类型>
-			void operator()(const TypedArray<输入类型>& 输入, 输出类型& 输出)const
+			const 输出迭代器& 输出;
+			template<typename 输入类型, typename 输出类型>
+			void operator()(const TypedArray<输入类型>& 输入)const
 			{
-				for (const 输入类型& a : 输入)
-					*(输出++) = (取迭代器值类型<输出类型>)a;
+				std::copy(输入.cbegin(), 输入.cend(), 输出);
 			}
-		};
-		//输出迭代器必须用引用返回，不然不能满足动态类型选择模板的要求
-		template<typename T输入, typename T输出>
-		struct 数组拷贝
-		{
-			static void 返回(const Array& 输入, T输出& 输出)
-			{
-				throw Mex异常::类型转换失败;
-			}
-		};
-		template<typename T>
-		inline void 选择性赋值(const T& 输入, const T& 输出) {}
-		template<typename T>
-			requires requires(const T& 输入, T& 输出) { 输出 = 输入; }
-		inline void 选择性赋值(const T& 输入, T& 输出)
-		{
-			输出 = 输入;
-		}
-		template<MATLAB简单元素 T输入, 隐写迭代器<T输入> T输出>
-		struct 数组拷贝<T输入, T输出&>
-		{
-			static void 返回(const Array& 输入, T输出& 输出)
-			{
-				const TypedArray<T输入>类型化(输入);
-				选择性赋值(std::copy(类型化.cbegin(), 类型化.cend(), 输出), 输出);
-			}
-		};
-		template<typename T输入, typename T输出>
-			requires MATLAB复杂元素<T输入>&& 可写迭代器<T输出, T输入> || 显写迭代器<T输出, T输入>
-		struct 数组拷贝<T输入, T输出&>
-		{
-			static void 返回(const Array& 输入, T输出& 输出)
-			{
-				const TypedArray<T输入>类型化(输入);
-				for (const T输入& a : 类型化)
-					*(输出++) = (取迭代器值类型<T输出>)a;
-			}
-		};
-		template<typename T输入, typename T输出>
-			requires MATLAB复杂元素<T输入>&& 可写迭代器<T输出, T输入> || 显写迭代器<T输出, T输入>
-		struct 数组拷贝<T输入, const T输出&>
-		{
-			static void 返回(const Array& 输入, const T输出& 输出)
-			{
-				T输出 拷贝 = 输出;
-				数组拷贝<T输入, T输出&>::返回(输入, 拷贝);
-			}
-		};
-		template<typename T被加数, typename T加数>
-		inline void 选择性求和(const T被加数& 被加数, const T加数& 加数) {}
-		template<非const T被加数, typename T加数>
-			requires requires(T被加数& 被加数, const T加数& 加数) { 被加数 += 加数; }
-		inline void 选择性求和(T被加数& 被加数, const T加数& 加数)
-		{
-			被加数 += 加数;
-		}
-		template<typename T输入, typename T输出>
-			requires (!std::is_void_v<取迭代器值类型<T输出>>&& requires(T输出& 输出, T输入 a) { (输出 + 2)[0] = (取迭代器值类型<T输出>)a; })
-		struct 数组拷贝<SparseArray<T输入>, T输出>
-		{
-			static void 返回(const Array& 输入, T输出& 输出)
+			template<typename 输入类型, typename 输出类型>
+			void operator()(const SparseArray<输入类型>& 输入)const
 			{
 				const SparseArray<T输入>稀疏(输入);
 				const TypedIterator<const T输入>迭代尾 = 稀疏.cend();
@@ -200,32 +142,8 @@ namespace Mex工具
 				for (TypedIterator<const T输入>a = 稀疏.cbegin(); a < 迭代尾; ++a)
 				{
 					const SparseIndex 索引 = 稀疏.getIndex(a);
-					输出[索引.first + 索引.second * 高度] = (取迭代器值类型<T输出>) * a;
+					输出[索引.first + 索引.second * 高度] = (取迭代器值类型<输出类型>) * a;
 				}
-				选择性求和(输出, 稀疏.getNumberOfElements());
-			}
-		};
-		template<typename T>
-		struct 去Sparse_s
-		{
-			using 元素 = T;
-		};
-		template<typename T>
-		struct 去Sparse_s<SparseArray<T>>
-		{
-			using 元素 = T;
-		};
-		template<typename T>
-		using 去Sparse = 去Sparse_s<T>::元素;
-		//void*特化用来处理用户不关心数组具体类型的情况
-		template<typename T输入, typename T输出>
-			requires (!std::is_void_v<T输入>&& std::is_same_v<std::remove_cvref_t<T输出>, void*>)
-		struct 数组拷贝<T输入, T输出&>
-		{
-			static void 返回(const Array& 输入, T输出& 输出)
-			{
-				using 转指针 = std::_Copy_cv<T输出, 去Sparse<T输入>*&>;
-				数组拷贝<T输入, 转指针>::返回(输入, (转指针)输出);
 			}
 		};
 		struct 数组字节数
@@ -548,7 +466,7 @@ namespace Mex工具
 	template<非const T>
 	inline void 万能转码(const matlab::data::Array& 输入, T& 输出)
 	{
-		动态类型选择模板<内部::数组拷贝, T&>(输入.getType())(输入, 输出);
+		matlab::data::apply_visitor(输入,)
 	}
 	/*
 	将MATLAB简单数组拷贝到C++迭代器或指针。这里的指针指的是定义了[]索引, ++自增和*解引用运算符的任何类型；迭代器类似于指针，但不需要定义[]索引。从满数组，可以拷贝到迭代器；从稀疏矩阵，可以拷贝到指针。输出的数据类型必须能够从输入类型隐式转换。一个反例是，整数类型不能隐式转换为指针类型，因此接受指针的迭代器不能在此处使用。从任意数组可以拷贝到void*，不会进行任何类型转换或解析，直接拷贝原始字节。
