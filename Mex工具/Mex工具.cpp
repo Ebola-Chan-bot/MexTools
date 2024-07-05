@@ -10,13 +10,29 @@ namespace Mex工具
 		while (++头指针 < 尾指针)
 			*头指针 = 数组工厂.createEmptyArray();
 	}
+	struct StringVisitor
+	{
+		String operator()(const CharArray& 输入)
+		{
+			return 输入.toUTF16();
+		}
+		String operator()(const StringArray& 输入)
+		{
+			return 输入[0];
+		}
+		String operator()(const CellArray& 输入)
+		{
+			return 输入[0].operator CharArray().toUTF16();
+		}
+		template<typename T>
+		String operator()(const T& 输入)
+		{
+			throw Mex异常::此Array不能转换为String;
+		}
+	};
 	template<>
 	String 万能转码<String>(Array&& 输入)
 	{
-		struct
-		{
-
-		}转换器;
 		switch (输入.getType())
 		{
 		case ArrayType::CHAR:

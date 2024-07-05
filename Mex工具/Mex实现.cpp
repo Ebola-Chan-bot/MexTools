@@ -1,13 +1,16 @@
 #include "Mex实现.h"
 #include "Mex工具.h"
 #include<excpt.h>
+#include<magic_enum.hpp>
+using namespace matlab::engine;
 namespace Mex工具 {
-	matlab::engine::MATLABEngine& MATLAB引擎;
+	MATLABEngine& MATLAB引擎;
 	namespace 内部
 	{
 		std::map<void*, std::move_only_function<void(void*)const>>自动析构表;
 	}
 }
+using namespace matlab::mex;
 static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
 {
 	__try
@@ -16,32 +19,34 @@ static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{
-		throw Mex工具::Mex异常::意外的SEH异常;
+		throw Mex工具::Mex异常::Unexpected_SEH_exception;
 	}
 }
 static void Cpp安全(ArgumentList& outputs, ArgumentList& inputs)
 {
 	try
 	{
-		SEH安全(outputs, inputs);
+		try
+		{
+			SEH安全(outputs, inputs);
+		}
+		catch (Mex工具::Mex异常 e)
+		{
+			throw;
+		}
+		catch (const std::exception& e)
+		{
+			throw;
+		}
+		catch (...)
+		{
+			throw Mex工具::Mex异常::Unexpected_CPP_exception;
+		}
 	}
 	catch (Mex工具::Mex异常 e)
 	{
-		if (e == Mex工具::Mex异常::意外的SEH异常)
-			Mex工具::MATLAB引擎.feval<void>("error", String(u"MexTool:SEHException"), String(u"发生了意外的SEH异常"));
-		else
-		{
-			const std::wstring 错误消息 = (std::wostringstream(L"发生了意外的Mex异常，错误代码：") << (uint16_t)e).str();
-			Mex工具::MATLAB引擎.feval<void>("error", String(u"MexTool:MexException"), String((char16_t*)错误消息.c_str()));
-		}
-	}
-	catch(const matlab::mex::Exception& e)
-	{
-		throw e;
-	}
-	catch (...)
-	{
-		Mex工具::MATLAB引擎.feval<void>("error", String(u"MexTool:CppException"), String(u"发生了意外的C++异常"));
+		const std::string_view 异常文本 = magic_enum::enum_name(e);
+		throw MATLABException(异常文本, Mex工具::万能转码<matlab::data::String>(异常文本));		
 	}
 }
 struct MexFunction :Function

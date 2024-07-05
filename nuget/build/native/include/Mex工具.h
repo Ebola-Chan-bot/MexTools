@@ -7,22 +7,22 @@ namespace Mex工具
 {
 	enum class Mex异常 :uint8_t
 	{
-		无异常,
-		类型转换失败,
-		内存拷贝失败,
-		枚举类型不能拷贝,
-		不支持的类型,
-		不支持的API,
-		此Array不能转换为CharArray,
-		此Array不能转换为String,
-		此Array不能转换为stdstring,
-		此Array不能转换为StringArray,
-		此Array不能转换为MATLABString,
-		此Array不能拷出为char,
-		此Array不能拷出为wchar_t,
-		稀疏数组不能取得指针,
-		不能从空数组取得标量,
-		意外的SEH异常,
+		No_exceptions,
+		Type_conversion_failed,
+		Memory_copy_failed,
+		Enumerations_uncopyable,
+		Unsupported_type,
+		Unsupported_API,
+		Array_cannot_convert_to_CharArray,
+		Array_cannot_convert_to_String,
+		Array_cannot_convert_to_std_string,
+		Array_cannot_convert_to_StringArray,
+		Array_cannot_convert_to_MATLABString,
+		Array_cannot_copy_to_char,
+		Array_cannot_copy_to_wchar_t,
+		Cannot_get_pointer_of_SparseArray,
+		Unexpected_SEH_exception,
+		Unexpected_CPP_exception
 	};
 	//这里使用static而不是extern，因为从其它编译单元链接的变量不一定能在DllMain阶段完成初始化，会造成意外错误。
 	static matlab::data::ArrayFactory 数组工厂;
@@ -639,7 +639,7 @@ namespace Mex工具
 	*/
 	template<同类迭代器<std::string> T>
 		requires 非const<T>
-	void 万能转码(Array&& 输入, T& 输出)
+	void 万能转码(matlab::data::Array&& 输入, T& 输出)
 	{
 		switch (输入.getType())
 		{
@@ -683,7 +683,7 @@ namespace Mex工具
 	同类迭代器<std::string> const T&& 输出迭代器，应接受std::string输入，确保有足够大的内存分配。
 	*/
 	template<同类迭代器<std::string> T>
-	inline void 万能转码(Array&& 输入, T&& 输出)
+	inline void 万能转码(matlab::data::Array&& 输入, T&& 输出)
 	{
 		万能转码(std::move(输入), 输出);
 	}
@@ -704,7 +704,7 @@ namespace Mex工具
 	T输出，指定类型的MATLAB数组
 	*/
 	template<MATLAB简单数组 T输出, 隐读迭代器<数组类型转元素<T输出>> T输入>
-	inline T输出 万能转码(T输入& 输入, const ArrayDimensions& 各维尺寸)
+	inline T输出 万能转码(T输入& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		T输出 输出 = 数组工厂.createArray<数组类型转元素<T输出>>(各维尺寸);
 		const size_t 元素个数 = 输出.getNumberOfElements();
@@ -729,7 +729,7 @@ namespace Mex工具
 	T输出，指定类型的MATLAB数组
 	*/
 	template<MATLAB简单数组 T输出, 隐读迭代器<数组类型转元素<T输出>> T输入>
-	inline T输出 万能转码(T输入&& 输入, const ArrayDimensions& 各维尺寸)
+	inline T输出 万能转码(T输入&& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		return 万能转码<T输出>((const T输入&)输入, 各维尺寸);
 	}
@@ -751,7 +751,7 @@ namespace Mex工具
 	*/
 	template<typename T输出, 非const T输入>
 		requires MATLAB复杂数组<T输出>&& CanCreateArray<数组类型转元素<T输出>> || 显读迭代器<T输入, 数组类型转元素<T输出>>
-	inline T输出 万能转码(T输入& 输入, const ArrayDimensions& 各维尺寸)
+	inline T输出 万能转码(T输入& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		T输出 输出 = 数组工厂.createArray<数组类型转元素<T输出>>(各维尺寸);
 		内部::通用迭代拷贝(输出, 输入);
@@ -774,7 +774,7 @@ namespace Mex工具
 	*/
 	template<typename T输出, typename T输入>
 		requires MATLAB复杂数组<T输出>&& CanCreateArray<T输出> || 显读迭代器<T输入, 数组类型转元素<T输出>>
-	inline T输出 万能转码(T输入&& 输入, const ArrayDimensions& 各维尺寸)
+	inline T输出 万能转码(T输入&& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		return 万能转码<T输出>(输入, 各维尺寸);
 	}
@@ -793,7 +793,7 @@ namespace Mex工具
 	TypedArray<取迭代器值类型<T输入>>，从迭代器输出类型的MATLAB数组
 	*/
 	template<迭代器 T输入, MATLAB简单元素 T输出 = 取迭代器值类型<T输入>>
-	inline TypedArray<T输出> 万能转码(T输入& 输入, const ArrayDimensions& 各维尺寸)
+	inline matlab::data::TypedArray<T输出> 万能转码(T输入& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		TypedArray<T输出>输出 = 数组工厂.createArray<T输出>(各维尺寸);
 		const size_t 元素个数 = 输出.getNumberOfElements();
@@ -816,7 +816,7 @@ namespace Mex工具
 	TypedArray<取迭代器值类型<T输入>>，从迭代器输出类型的MATLAB数组
 	*/
 	template<迭代器 T输入, MATLAB简单元素 T输出 = 取迭代器值类型<T输入>>
-	inline TypedArray<T输出> 万能转码(T输入&& 输入, const ArrayDimensions& 各维尺寸)
+	inline matlab::data::TypedArray<T输出> 万能转码(T输入&& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		return 万能转码((const T输入&)输入, 各维尺寸);
 	}
@@ -831,7 +831,7 @@ namespace Mex工具
 	*/
 	template<迭代器 T输入, MATLAB复杂元素 T输出 = 取迭代器值类型<T输入>>
 		requires CanCreateArray<T输出>&& 非const<T输入>
-	TypedArray<T输出> 万能转码(T输入& 输入, const ArrayDimensions& 各维尺寸)
+	matlab::data::TypedArray<T输出> 万能转码(T输入& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		TypedArray<T输出> 输出 = 数组工厂.createArray<T输出>(各维尺寸);
 		for (Reference<T输出>a : 输出)
@@ -849,7 +849,7 @@ namespace Mex工具
 	*/
 	template<迭代器 T输入, MATLAB复杂元素 T输出 = 取迭代器值类型<T输入>>
 		requires CanCreateArray<T输出>
-	inline TypedArray<T输出> 万能转码(T输入&& 输入, const ArrayDimensions& 各维尺寸)
+	inline matlab::data::TypedArray<T输出> 万能转码(T输入&& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		万能转码(输入, 各维尺寸);
 	}
@@ -864,7 +864,7 @@ namespace Mex工具
 	*/
 	template<迭代器 T输入, CanCreateArray T输出 = std::underlying_type_t<取迭代器值类型<T输入>>>
 		requires 非const<T输入>
-	TypedArray<T输出> 万能转码(T输入& 输入, const ArrayDimensions& 各维尺寸)
+	matlab::data::TypedArray<T输出> 万能转码(T输入& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		TypedArray<T输出>输出 = 数组工厂.createArray<T输出>(各维尺寸);
 		for (T输出& a : 输出)
@@ -881,7 +881,7 @@ namespace Mex工具
 	TypedArray<std::underlying_type_t<取迭代器值类型<T输入>>>，从输入迭代器输出的枚举的基础类型的MATLAB数组
 	*/
 	template<迭代器 T输入, CanCreateArray T输出 = std::underlying_type_t<取迭代器值类型<T输入>>>
-	inline TypedArray<T输出> 万能转码(T输入&& 输入, const ArrayDimensions& 各维尺寸)
+	inline matlab::data::TypedArray<T输出> 万能转码(T输入&& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		return 万能转码(输入, 各维尺寸);
 	}
@@ -894,9 +894,9 @@ namespace Mex工具
 	# 返回值
 	StringArray，MATLAB UTF16 字符串数组
 	*/
-	template<只能是<StringArray>T输出 = StringArray, 同类迭代器<std::string> T>
+	template<只能是<matlab::data::StringArray>T输出 = matlab::data::StringArray, 同类迭代器<std::string> T>
 		requires 非const<T>
-	StringArray 万能转码(T& 输入, const ArrayDimensions& 各维尺寸)
+	matlab::data::StringArray 万能转码(T& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		StringArray 输出 = 数组工厂.createArray<MATLABString>(各维尺寸);
 		const size_t 个数 = 输出.getNumberOfElements();
@@ -921,8 +921,8 @@ namespace Mex工具
 	# 返回值
 	StringArray，MATLAB UTF16 字符串数组
 	*/
-	template<只能是<StringArray>T输出 = StringArray, 同类迭代器<std::string> T>
-	inline StringArray 万能转码(T&& 输入, const ArrayDimensions& 各维尺寸)
+	template<只能是<matlab::data::StringArray>T输出 = matlab::data::StringArray, 同类迭代器<std::string> T>
+	inline matlab::data::StringArray 万能转码(T&& 输入, const matlab::data::ArrayDimensions& 各维尺寸)
 	{
 		return 万能转码(输入, 各维尺寸);
 	}
@@ -943,7 +943,7 @@ namespace Mex工具
 		# 返回值
 		std::unique_ptr<动态类型缓冲>，请通过指针操作对象，因为内部实现是被子类继承的，直接取值会导致对象被截断。
 		*/
-		static std::unique_ptr<动态类型缓冲>创建(ArrayType 类型, size_t 元素数);
+		static std::unique_ptr<动态类型缓冲>创建(matlab::data::ArrayType 类型, size_t 元素数);
 		/*
 		通过无类型指针访问MATLAB数组。此方法仅适用于POD类型的MATLAB数组。
 		语法：Mex工具::动态类型缓冲::读取(MATLAB数组)
@@ -952,11 +952,11 @@ namespace Mex工具
 		# 返回值
 		std::unique_ptr<动态类型缓冲>，请通过指针操作对象，因为内部实现是被子类继承的，直接取值会导致对象被截断。
 		*/
-		static std::unique_ptr<动态类型缓冲>读取(Array&& MATLAB数组);
+		static std::unique_ptr<动态类型缓冲>读取(matlab::data::Array&& MATLAB数组);
 		virtual ~动态类型缓冲() {}
 		//打包后本对象变为不可用，所有数据封装在 MATLAB Array 中
-		virtual Array 打包(ArrayDimensions 各维尺寸)noexcept = 0;
-		virtual Array 打包()noexcept = 0;
+		virtual matlab::data::Array 打包(matlab::data::ArrayDimensions 各维尺寸)noexcept = 0;
+		virtual matlab::data::Array 打包()noexcept = 0;
 	protected:
 		动态类型缓冲(void* 指针, size_t 字节数) :指针(指针), 字节数(字节数) {}
 	};

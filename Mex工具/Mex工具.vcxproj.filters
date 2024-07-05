@@ -44,5 +44,6 @@
     <None Include="..\.gitignore" />
     <None Include="..\README.md" />
     <None Include="..\NuGet打包.ps1" />
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
