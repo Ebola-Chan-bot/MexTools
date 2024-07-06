@@ -74,11 +74,13 @@
     <TargetExt>.mexw64</TargetExt>
     <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
     <ExternalIncludePath>C:\Program Files\MATLAB\R2024b\extern\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)B</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetExt>.mexw64</TargetExt>
     <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
     <ExternalIncludePath>C:\Program Files\MATLAB\R2024b\extern\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)B</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -163,8 +165,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="A.ixx" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="功能测试.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\..\..\..\..\..\Program Files\MATLAB\R2024b\extern\lib\win64\microsoft\libMatlabDataArray.lib" />
