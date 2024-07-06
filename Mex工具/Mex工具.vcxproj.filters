@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\nuget\build\native\include\Mex工具.h">
+    <ClInclude Include="..\nuget\build\native\include\参考.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\nuget\build\native\include\Mex类型.h">
@@ -26,11 +26,17 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Mex工具.cpp">
+    <ClCompile Include="Mex工具_old.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Mex实现.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Mex工具.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Mex工具.ixx">
+      <Filter>头文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

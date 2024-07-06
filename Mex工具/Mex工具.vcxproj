@@ -166,12 +166,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\nuget\build\native\include\Mex实现.h" />
-    <ClInclude Include="..\nuget\build\native\include\Mex工具.h" />
+    <ClInclude Include="..\nuget\build\native\include\参考.h" />
     <ClInclude Include="..\nuget\build\native\include\Mex类型.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Mex实现.cpp" />
     <ClCompile Include="Mex工具.cpp" />
+    <ClCompile Include="Mex工具.ixx" />
+    <ClCompile Include="Mex工具_old.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\libMatlabDataArray.lib" />
