@@ -70,16 +70,16 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
