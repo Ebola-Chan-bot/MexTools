@@ -1,2 +1,8 @@
 export module A;
-import"B.hpp";
+export template<typename T>
+struct B;
+template<>
+struct B<int>
+{
+	using type = int;
+};

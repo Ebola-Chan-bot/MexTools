@@ -17,3 +17,5 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
+import A;
+using D = B<char>::type;
