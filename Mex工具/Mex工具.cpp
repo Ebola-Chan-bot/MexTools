@@ -3,6 +3,12 @@ module;
 #include <Windows.h>
 module Mex工具;
 using namespace matlab::data;
+inline CharArray UTF8转码(const char* 输入, size_t 长度)
+{
+	buffer_ptr_t<char16_t> 缓冲 = Mex工具::数组工厂.createBuffer<char16_t>(长度 + 1);
+	长度 = MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)缓冲.get(), 长度 + 1) - 1;
+	return Mex工具::数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
+}
 namespace Mex工具
 {
 	ArrayFactory 数组工厂;
@@ -149,6 +155,18 @@ namespace Mex工具
 			return std::wstring((wchar_t*)字符串.data(), 字符串.size());
 		}
 		}
+	}
+	CharArray 标量转换<CharArray>::转换(const char* 输入)
+	{
+		return UTF8转码(输入, strlen(输入));
+	}
+	CharArray 标量转换<CharArray>::转换(const std::string& 输入)
+	{
+		return UTF8转码(输入.data(), 输入.size());
+	}
+	CharArray 标量转换<CharArray>::转换(const std::string_view& 输入)
+	{
+		return UTF8转码(输入.data(), 输入.size());
 	}
 }
 using namespace Mex工具;

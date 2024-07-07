@@ -1,6 +1,5 @@
 ﻿export module Mex工具;
 import :实现;
-export import :隐式导出;
 namespace Mex工具
 {
 	//用户必须定义以下函数
@@ -56,7 +55,7 @@ namespace Mex工具
 	export template<typename 输出, typename T>
 		inline 输出 万能转码(T&& 输入)
 	{
-		return 万能转码<数组类型转元素<输出>>(std::move(输入));
+		return 标量转换<输出>::转换(std::move(输入));
 	}
 	/*将MATLAB数组拷出到迭代器。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
 	特别地，所有能被转换为string的MATLAB类型数组可以被拷出到接受CharArray、MATLABString、String（i.e.std::u16string）、std::string或std::wstring的迭代器。自动执行必要的UTF16到UTF8转换。
