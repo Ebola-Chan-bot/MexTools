@@ -2,9 +2,13 @@ module;
 #include<magic_enum.hpp>
 #include<excpt.h>
 module Mex工具;
-matlab::data::ArrayFactory Mex工具::数组工厂;
-std::shared_ptr<matlab::engine::MATLABEngine> Mex工具::MATLAB引擎;
-std::map<void*, std::move_only_function<void(void*)const>>Mex工具::自动析构表;
+using namespace matlab::data;
+namespace Mex工具
+{
+	ArrayFactory 数组工厂;
+	std::shared_ptr<matlab::engine::MATLABEngine> MATLAB引擎;
+	std::map<void*, std::move_only_function<void(void*)const>>自动析构表;
+}
 using namespace Mex工具;
 using namespace matlab::mex;
 static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
@@ -46,8 +50,8 @@ void MexFunction::operator()(ArgumentList outputs, ArgumentList inputs)
 	}
 	catch (Mex工具::Mex异常 e)
 	{
-		const std::string_view 异常文本 = magic_enum::enum_name(e);
-		throw matlab::engine::MATLABException((const std::string&)异常文本, (const std::u16string&)Mex工具::万能转码<matlab::data::String>(异常文本));
+		const std::string 异常文本(magic_enum::enum_name(e));
+		throw matlab::engine::MATLABException(异常文本, Mex工具::万能转码<String>(异常文本));
 	}
 }
 MexFunction::~MexFunction()

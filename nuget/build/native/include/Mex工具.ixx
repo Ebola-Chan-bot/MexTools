@@ -20,12 +20,21 @@ namespace Mex工具
 
 	/*一对一转换。支持以下所有转换：
 	将输入MATLAB类型视为标量，转换为C++类型。如果类型不完全匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
-	将输入C++类型转换为MATLAB标量。如果类型不完全匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
 	将所有能被转换为string的MATLAB类型视为标量，转换为CharArray、MATLABString、String（i.e. std::u16string）、StringArray、std::string或std::wstring。自动执行必要的UTF16到UTF8转换。
-	将所有能被MATLAB转换为StringArray的Array类型视为标量，或所有被std::ostring::operator<<或std::wostream::operator<<支持的类型，转换为CharArray、MATLABString、String（i.e. std::u16string）或StringArray。自动执行必要的UTF8到UTF16转换。
+	输入右值引用，这意味着转换后输入数组将不再可用。
 	*/
-	export template<typename 输出,typename 输入>
-		输出 万能转码(输入&&);
+	export template<typename 输出>
+		inline 输出 万能转码(Array&& 输入)
+	{
+		return apply_visitor(std::move(输入), 标量转换<输出>());
+	}
+	/*一对一转换。支持以下所有转换：
+	将输入C++类型转换为MATLAB标量。如果类型不完全匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
+	将所有能被MATLAB转换为StringArray的Array类型视为标量，或所有被std::ostring::operator<<或std::wostream::operator<<支持的类型，转换为CharArray、MATLABString、String（i.e. std::u16string）或StringArray。自动执行必要的UTF8到UTF16转换。
+	输入右值引用，这意味着转换后输入对象将不再可用。
+	*/
+	export template<typename 输出, typename 输入>
+		inline 输出 万能转码(输入&&);
 	/*将MATLAB数组拷出到迭代器。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
 	特别地，所有能被转换为string的MATLAB类型数组可以被拷出到接受CharArray、MATLABString、String（i.e.std::u16string）、std::string或std::wstring的迭代器。自动执行必要的UTF16到UTF8转换。
 	特别地，如果迭代器是void*，将把MATLAB数组的底层字节直接拷出到目标指针，无论其是否为POD类型。
@@ -42,30 +51,49 @@ namespace Mex工具
 	export template<typename 迭代器, typename 输出类型 = TypedArray<std::remove_cvref_t<decltype(*(std::declval<迭代器>() + 1))>>>
 		输出类型 万能转码(迭代器&, ArrayDimensions&&);
 
-	//获取任意类型MATLAB数组的字节数，即元素个数×单个元素的字节数。稀疏数组的字节数包含其0元素所占字节。
-	export size_t 数组字节数(const Array&);
-
 	//此变量模板将静态的数组元素类型转换为ArrayType枚举值
 	export template<typename T>
 		extern constexpr ArrayType 静态类型转动态 = GetArrayType<T>::type;
 
 	//此别名模板将ArrayType枚举值转换为静态的数组元素类型
 	export template<ArrayType T>
-		using 动态类型转静态 = typename 动态类型转静态_s<T>::类型;
+		using 动态类型转静态 = typename 动态类型转静态_s<T>::type;
+
+	//将ArrayType枚举值转换为对应的C++类型的字节数，需要将ArrayType转换为size_t后作为该数组的索引以得到字节数。使用示例：Mex工具::类型字节数[(size_t)ArrayType::DOUBLE];
+	export constexpr const uint8_t(&类型字节数)[] = 类型字节数_s<std::make_integer_sequence<std::underlying_type_t<ArrayType>, 32>>::value;
+
+	//获取任意类型MATLAB数组的字节数，即元素个数×单个元素的字节数。稀疏数组的字节数包含其0元素所占字节。
+	export inline size_t 数组字节数(const Array& 输入)
+	{
+		return 类型字节数[(size_t)输入.getType()] * 输入.getNumberOfElements();
+	}
 
 	//自动析构
 
 	//将对象指针加入自动析构表。clear mex 时此指针将被自动delete。只能对new创建的对象指针使用此方法。
 	export template<typename T>
-		inline void 自动析构(T* 对象指针)noexcept;
+		inline void 自动析构(T* 对象指针)noexcept
+	{
+		自动析构表[对象指针] = [](void* 指针) {delete (T*)指针; };
+	}
 	//将对象指针加入自动析构表。clear mex 时此对象将被自动析构。使用指定的删除器。
 	export template<typename T>
-		inline void 自动析构(T* 对象指针, std::move_only_function<void(void*)>&& 删除器)noexcept;
+		inline void 自动析构(T* 对象指针, std::move_only_function<void(void*)>&& 删除器)noexcept
+	{
+		自动析构表[对象指针] = std::move(删除器);
+	}
 	//此方法用于提示指定对象已被自动析构，从而避免自动析构表重复析构。此方法不负责析构对象本身，对象本身仍由调用方负责析构。
-	export inline bool 手动析构(void* 对象指针)noexcept;
+	export inline bool 手动析构(void* 对象指针)noexcept
+	{
+		return 自动析构表.erase(对象指针);
+	}
 	//检查对象指针是否存在于自动析构表中。如不存在，此指针可能是无效的，或者创建时未加入自动析构表。
-	export bool 对象存在(void* 对象指针)noexcept;
+	export inline bool 对象存在(void* 对象指针)noexcept
+	{
+		return 自动析构表.contains(对象指针);
+	}
 
+	//Mex工具可能会抛出的异常类型。除此之外，非本工具实现的代码还可能抛出std::exception及其派生类。
 	export enum class Mex异常
 	{
 		No_exceptions,
