@@ -3,6 +3,66 @@ export module Mex工具:实现;
 import "MexFunction.hpp";
 import std;
 using namespace matlab::data;
+template<typename T,typename 目标>
+concept 可以显式转换到 = requires(目标 & 输出, T && 输入) { 输出 = (目标)std::move(输入); };
+template<typename T,typename 目标>
+concept 必须显式转换到 = !std::convertible_to<T, 目标>&& 可以显式转换到<T, 目标>;
+template<typename T,typename 目标>
+concept 必须MATLAB转换到 = !(std::convertible_to<T, 目标> && 可以显式转换到<T, 目标>);
+template<typename T>
+const std::u16string MATLAB转换函数 = u"";
+template<>
+const std::u16string MATLAB转换函数<bool> = u"logical";
+template<>
+const std::u16string MATLAB转换函数<char16_t> = u"char";
+template<>
+const std::u16string MATLAB转换函数<MATLABString> = u"string";
+template<>
+const std::u16string MATLAB转换函数<double> = u"double";
+template<>
+const std::u16string MATLAB转换函数<float> = u"single";
+template<>
+const std::u16string MATLAB转换函数<int8_t> = u"int8";
+template<>
+const std::u16string MATLAB转换函数<int16_t> = u"int16";
+template<>
+const std::u16string MATLAB转换函数<int32_t> = u"int32";
+template<>
+const std::u16string MATLAB转换函数<int64_t> = u"int64";
+template<>
+const std::u16string MATLAB转换函数<uint8_t> = u"uint8";
+template<>
+const std::u16string MATLAB转换函数<uint16_t> = u"uint16";
+template<>
+const std::u16string MATLAB转换函数<uint32_t> = u"uint32";
+template<>
+const std::u16string MATLAB转换函数<uint64_t> = u"uint64";
+template<typename T>
+const std::u16string MATLAB转换函数<std::complex<T>> = u"complex";
+template<typename T>
+const std::u16string MATLAB转换函数<SparseArray<T>> = u"sparse";
+void 类型转换失败();
+template <class _Ty, class... _Types>
+_INLINE_VAR constexpr bool _Is_any_of_v = // true if and only if _Ty is in _Types
+#if _HAS_CXX17
+(std::is_same_v<std::remove_cvref_t<_Ty>, _Types> || ...);
+#else // ^^^ _HAS_CXX17 / !_HAS_CXX17 vvv
+std::disjunction_v<std::is_same<std::remove_cvref_t<_Ty>, _Types>...>;
+#endif // ^^^ !_HAS_CXX17 ^^^
+template<typename T>
+concept 字符串类型 = _Is_any_of_v<T, CharArray, MATLABString, String, StringArray, std::string, std::wstring, CellArray, char, char16_t, wchar_t, std::string_view, std::wstring_view, std::u16string_view, char*, wchar_t*, char16_t*>;
+template<typename T>
+concept 可以宽字符输出 = requires(std::wostringstream 输出, T && 输入) { 输出 << std::move(输入); };
+template<typename T>
+concept 可以窄字符输出 = requires(std::ostringstream 输出, T && 输入) { 输出 << std::move(输入); };
+template<typename T>
+concept 宽字符输出 = !字符串类型<T> && 可以宽字符输出<T>;
+template<typename T>
+concept 窄字符输出 = !(字符串类型<T> || 可以宽字符输出<T>) && 可以窄字符输出<T>;
+template<typename T>
+concept 需要MATLAB转换字符串 = !(字符串类型<T> || 可以宽字符输出<T> || 可以窄字符输出<T>);
+template<typename T>
+using 取迭代器值类型 = std::remove_cvref_t<decltype(*std::declval<T>())>;
 namespace Mex工具
 {
 	template<ArrayType T>struct 动态类型转静态_s { using type = void; };
@@ -52,13 +112,39 @@ namespace Mex工具
 
 	//万能转码实现
 
+	extern ArrayFactory 数组工厂;
+	extern std::shared_ptr<matlab::engine::MATLABEngine> MATLAB引擎;
+	template<typename T>
+	concept 可以MATLAB元素转换 = requires(T && 输入) { MATLAB引擎->feval<String>(MATLAB转换函数<void>, std::move(输入)); };
+	template<typename T>
+	concept 可以MATLAB数组转换 = requires(T && 输入) { MATLAB引擎->feval(MATLAB转换函数<void>, std::move(输入)); };
+	template<typename T>
+	concept 需要MATLAB元素转字符串 = 需要MATLAB转换字符串<T> && 可以MATLAB元素转换<T>;
+	template<typename T>
+	concept 需要MATLAB数组转字符串 = 需要MATLAB转换字符串<T> && 可以MATLAB数组转换<T>;
+	template<typename T, typename 目标>
+	concept 必须MATLAB元素转换到 = 必须MATLAB转换到<T, 目标>&& 可以MATLAB元素转换<T>;
+	template<typename T, typename 目标>
+	concept 必须MATLAB数组转换到 = 必须MATLAB转换到<T, 目标>&& 可以MATLAB数组转换<T>;
+
 	template<typename 输出>
 	struct 标量转换
 	{
-		template<typename T>输出 operator()(const TypedArray<T>& 输入) { return (输出)输入[0].operator T(); }
-		template<std::convertible_to<输出> T>输出 operator()(const TypedArray<T>& 输入) { return 输入[0].operator T(); }
-		template<typename T>输出 operator()(const SparseArray<T>& 输入) { return (输出)输入[0].operator T(); }
-		template<std::convertible_to<输出> T>输出 operator()(const SparseArray<T>& 输入) { return 输入[0].operator T(); }
+		template<template<typename>typename 是否稀疏,std::convertible_to<输出> 元素类型>
+		输出 operator()(const 是否稀疏<元素类型>& 输入)
+		{
+			return 输入[0].operator 元素类型();
+		}
+		template<template<typename>typename 是否稀疏, 必须显式转换到<输出> 元素类型>
+		输出 operator()(const 是否稀疏<元素类型>& 输入)
+		{
+			return (输出)输入[0].operator 元素类型();
+		}
+		template<template<typename>typename 是否稀疏, 必须MATLAB转换到<输出> 元素类型>
+		输出 operator()(const 是否稀疏<元素类型>& 输入)
+		{
+			return MATLAB引擎->feval(MATLAB转换函数<输出>, std::move(输入))[0];
+		}
 	}; 
 
 	template<typename 输出>输出 万能转码(Array&& 输入);
@@ -69,18 +155,29 @@ namespace Mex工具
 	template<>StringArray Mex工具::万能转码<StringArray>(Array&& 输入);
 	template<>std::wstring Mex工具::万能转码<std::wstring>(Array&& 输入);
 
-	extern ArrayFactory 数组工厂;
-
 	template<typename 输出>
 	struct 标量转换<TypedArray<输出>>
 	{
-		template<typename T>static TypedArray<输出>转换(T&& 输入) { return 数组工厂.createScalar<输出>((输出)std::move(输入)); }
 		template<std::convertible_to<输出> T>static TypedArray<输出>转换(T&& 输入) { return 数组工厂.createScalar<输出>(std::move(输入)); }
+		template<必须显式转换到<输出> T>static TypedArray<输出>转换(T&& 输入) { return 数组工厂.createScalar<输出>((输出)std::move(输入)); }
+		template<必须MATLAB元素转换到<输出>T>
+		static TypedArray<输出>转换(T&& 输入)
+		{
+			return MATLAB引擎->feval(MATLAB转换函数<输出>, 数组工厂.createScalar(std::move(输入)));
+		}
+		template<必须MATLAB数组转换到<输出>T>
+		static TypedArray<输出>转换(T&& 输入)
+		{
+			return MATLAB引擎->feval(MATLAB转换函数<输出>, std::move(输入));
+		}
 	};
+
+
 	template<>
 	class 标量转换<CharArray>
 	{
-		static CharArray UTF16拷贝(const char16_t* 输入, size_t 长度)
+		static CharArray 转换(const char* 输入, size_t 长度);
+		static CharArray 转换(const char16_t* 输入, size_t 长度)
 		{
 			buffer_ptr_t<char16_t>缓冲 = 数组工厂.createBuffer<char16_t>(长度);
 			std::copy_n(输入, 长度, 缓冲.get());
@@ -92,16 +189,142 @@ namespace Mex工具
 		static CharArray 转换(const CellArray& 输入) { return 输入[0]; }
 		static CharArray 转换(const StringArray& 输入) { return 数组工厂.createCharArray(输入[0].operator String()); }
 		static CharArray 转换(char 输入) { return 数组工厂.createScalar<char16_t>(输入); }
-		static CharArray 转换(const char* 输入);
-		static CharArray 转换(const std::string& 输入);
-		static CharArray 转换(const std::string_view& 输入);
+		static CharArray 转换(const char* 输入) { return 转换(输入, strlen(输入)); }
+		static CharArray 转换(const std::string& 输入) { return 转换(输入.data(), 输入.size()); }
+		static CharArray 转换(const std::string_view& 输入) { return 转换(输入.data(), 输入.size()); }
 		static CharArray 转换(wchar_t 输入) { return 数组工厂.createScalar<char16_t>(输入); }
-		static CharArray 转换(const wchar_t* 输入) { return UTF16拷贝((char16_t*)输入, wcslen(输入)); }
-		static CharArray 转换(const std::wstring& 输入) { return UTF16拷贝((char16_t*)输入.data(), 输入.size()); }
-		static CharArray 转换(const std::wstring_view& 输入) { return UTF16拷贝((char16_t*)输入.data(), 输入.size()); }
+		static CharArray 转换(const wchar_t* 输入) { return 转换((char16_t*)输入, wcslen(输入)); }
+		static CharArray 转换(const std::wstring& 输入) { return 转换((char16_t*)输入.data(), 输入.size()); }
+		static CharArray 转换(const std::wstring_view& 输入) { return 转换((char16_t*)输入.data(), 输入.size()); }
 		static CharArray 转换(char16_t 输入) { return 数组工厂.createScalar<char16_t>(输入); }
-		static CharArray 转换(const char16_t* 输入) { return UTF16拷贝(输入, wcslen((wchar_t*)输入)); }
+		static CharArray 转换(const char16_t* 输入) { return 转换(输入, wcslen((wchar_t*)输入)); }
 		static CharArray 转换(String&& 输入) { return 数组工厂.createCharArray(std::move(输入)); }
-		static CharArray 转换(const std::u16string_view& 输入) { return UTF16拷贝(输入.data(), 输入.size()); }
+		static CharArray 转换(const std::u16string_view& 输入) { return 转换(输入.data(), 输入.size()); }
+		template<宽字符输出 T>
+		static CharArray 转换(T&& 输入)
+		{
+			std::wostringstream 流;
+			流 << std::move(输入);
+			return 转换(流.str());
+		}
+		template<窄字符输出 T>
+		static CharArray 转换(T&& 输入)
+		{
+			std::stringstream 流;
+			流 << std::move(输入);
+			return 转换(流.str());
+		}
+		template<需要MATLAB元素转字符串 T>
+		static CharArray 转换(T&& 输入)
+		{
+			return 数组工厂.createCharArray(MATLAB引擎->feval<String>(MATLAB转换函数<MATLABString>, std::move(输入)));
+		}
+		template<需要MATLAB数组转字符串 T>
+		static CharArray 转换(T&& 输入)
+		{
+			return 数组工厂.createCharArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0].operator String());
+		}
+	};
+	template<>
+	class 标量转换<String>
+	{
+		static String 转换(const char* 输入, size_t 长度);
+	public:
+		static String 转换(const CharArray& 输入) { return 输入.toUTF16(); }
+		static String 转换(MATLABString&& 输入) { return std::move(输入); }
+		static String 转换(const CellArray& 输入) { return 输入[0].operator CharArray().toUTF16(); }
+		static String 转换(const StringArray& 输入) { return 输入[0]; }
+		static String 转换(char 输入) { return String(1, 输入); }
+		static String 转换(const char* 输入) { return 转换(输入, strlen(输入)); }
+		static String 转换(const std::string& 输入) { return 转换(输入.data(), 输入.size()); }
+		static String 转换(const std::string_view& 输入) { return 转换(输入.data(), 输入.size()); }
+		static String 转换(wchar_t 输入) { return String(1, 输入); }
+		static String 转换(const wchar_t* 输入) { return (char16_t*)输入; }
+		static String 转换(const std::wstring& 输入) { return String((char16_t*)输入.data(), 输入.size()); }
+		static String 转换(const std::wstring_view& 输入) { return String((char16_t*)输入.data(), 输入.size()); }
+		static String 转换(char16_t 输入) { return String(1, 输入); }
+		static String 转换(const char16_t* 输入) { return 输入; }
+		static String 转换(String&& 输入) { return std::move(输入); }
+		static String 转换(const std::u16string_view& 输入) { return String(输入); }//String不能从u16string_view移动构造
+		template<宽字符输出 T>
+		static String 转换(T&& 输入)
+		{
+			std::wostringstream 流;
+			流 << std::move(输入);
+			return 转换(流.str());
+		}
+		template<窄字符输出 T>
+		static String 转换(T&& 输入)
+		{
+			std::stringstream 流;
+			流 << std::move(输入);
+			return 转换(流.str());
+		}
+		template<需要MATLAB元素转字符串 T>
+		static String 转换(T&& 输入)
+		{
+			return MATLAB引擎->feval<String>(MATLAB转换函数<MATLABString>, std::move(输入));
+		}
+		template<需要MATLAB数组转字符串 T>
+		static String 转换(T&& 输入)
+		{
+			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0];
+		}
+	};
+	template<>
+	struct 标量转换<MATLABString>
+	{
+		static MATLABString 转换(MATLABString&& 输入) { return std::move(输入); }
+		static MATLABString 转换(String&& 输入) { return std::move(输入); }
+		template<需要MATLAB元素转字符串 T>
+		static MATLABString 转换(T&& 输入)
+		{
+			return MATLAB引擎->feval<MATLABString>(MATLAB转换函数<MATLABString>, std::move(输入));
+		}
+		template<需要MATLAB数组转字符串 T>
+		static MATLABString 转换(T&& 输入)
+		{
+			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0];
+		}
+		template<typename T>
+		requires (!(_Is_any_of_v<T,MATLABString,String>||需要MATLAB转换字符串<T>))
+		static MATLABString 转换(T&& 输入)
+		{
+			return 标量转换<String>::转换(std::move(输入));
+		}
+	};
+	template<>
+	struct 标量转换<StringArray>
+	{
+		static StringArray 转换(StringArray&& 输入) { return std::move(输入); }
+		template<需要MATLAB数组转字符串 T>
+		static StringArray 转换(T&& 输入)
+		{
+			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入));
+		}
+		template<typename T>
+		requires(!(std::is_same_v<std::remove_cvref_t<T>,StringArray>|| 需要MATLAB数组转字符串<T>))
+		static StringArray 转换(T&& 输入)
+		{
+			return 数组工厂.createScalar(标量转换<String>::转换(std::move(输入)));
+		}
+	};
+	template<typename 迭代器>
+	class 迭代MC
+	{
+		迭代器& 输出;
+		using 值类型 = 取迭代器值类型<迭代器>;
+	public:
+		迭代MC(迭代器& 输出) :输出(输出) {}
+		template<std::convertible_to<值类型> T>
+		void operator()(const TypedArray<T>&输入)
+		{
+			输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
+		}
+		template<必须显式转换到<值类型>T>
+		void operator()(const TypedArray<T>& 输入)
+		{
+			输出=std::transform(输入.cbegin(),输入.cend(),输出,[](const)
+		}
 	};
 }
