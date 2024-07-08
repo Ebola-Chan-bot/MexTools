@@ -63,6 +63,8 @@ template<typename T>
 concept 需要MATLAB转换字符串 = !(字符串类型<T> || 可以宽字符输出<T> || 可以窄字符输出<T>);
 template<typename T>
 using 取迭代器值类型 = std::remove_cvref_t<decltype(*std::declval<T>())>;
+template<typename T,typename...值类型>
+concept 迭代器值类型是 = _Is_any_of_v<取迭代器值类型<T>, 值类型...>;
 namespace Mex工具
 {
 	template<ArrayType T>struct 动态类型转静态_s { using type = void; };
@@ -324,7 +326,147 @@ namespace Mex工具
 		template<必须显式转换到<值类型>T>
 		void operator()(const TypedArray<T>& 输入)
 		{
-			输出=std::transform(输入.cbegin(),输入.cend(),输出,[](const)
+			输出 = std::transform(输入.cbegin(), 输入.cend(), 输出, [](const T& 输入) {return (值类型)输入; });
+		}
+		template<必须MATLAB元素转换到<值类型>T>
+		void operator()(TypedArray<T>&& 输入)
+		{
+			operator()((TypedArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
+		}
+		template<std::convertible_to<值类型> T>
+		void operator()(const SparseArray<T>& 输入)
+		{
+			const TypedIterator<const T>迭代尾 = 输入.cend();
+			const size_t 高度 = 输入.getDimensions().front();
+			std::fill_n(输出, 输入.getNumberOfElements(), 0);
+			for (TypedIterator<const T>a = 输入.cbegin(); a < 迭代尾; ++a)
+			{
+				const SparseIndex 索引 = 输入.getIndex(a);
+				输出[索引.first + 索引.second * 高度] = *a;
+			}
+			输出 += 输入.getNumberOfElements();
+		}
+		template<必须显式转换到<值类型>T>
+		void operator()(const SparseArray<T>& 输入)
+		{
+			const TypedIterator<const T>迭代尾 = 输入.cend();
+			const size_t 高度 = 输入.getDimensions().front();
+			std::fill_n(输出, 输入.getNumberOfElements(), 0);
+			for (TypedIterator<const T>a = 输入.cbegin(); a < 迭代尾; ++a)
+			{
+				const SparseIndex 索引 = 输入.getIndex(a);
+				输出[索引.first + 索引.second * 高度] = (值类型)*a;
+			}
+			输出 += 输入.getNumberOfElements();
+		}
+		template<必须MATLAB元素转换到<值类型>T>
+		void operator()(SparseArray<T>&& 输入)
+		{
+			operator()((SparseArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
+		}
+	};
+	template<>
+	class 迭代MC<void*>
+	{
+		void*& 输出;
+	public:
+		迭代MC(void*& 输出) :输出(输出) {}
+		template<template<typename>typename 是否稀疏,typename T>
+		void operator()(const 是否稀疏<T>& 输入)
+		{
+			迭代MC<T*>((T*&)输出)(输入);
+		}
+	};
+	template<迭代器值类型是<CharArray>迭代器>
+	class 迭代MC<迭代器>
+	{
+		迭代器& 输出;
+	public:
+		迭代MC(迭代器& 输出) :输出(输出) {}
+		void operator()(CharArray&& 输入)
+		{
+			*(输出++) = std::move(输入);
+		}
+		void operator()(const CellArray& 输入)
+		{
+			输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
+		}
+		void operator()(const StringArray& 输入)
+		{
+			输出 = std::transform(输入.cbegin(), 输入.cend(), 输出, [](const String& 输入) {return 数组工厂.createCharArray(输入); });
+		}
+		template<typename T>
+		requires (!_Is_any_of_v<T,CharArray,CellArray,StringArray>)
+		void operator()(T&& 输入)
+		{
+			operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
+		}
+	};
+	template<迭代器值类型是<String,MATLABString>迭代器>
+	class 迭代MC<迭代器>
+	{
+		迭代器& 输出;
+	public:
+		迭代MC(迭代器& 输出) :输出(输出) {}
+		void operator()(CharArray&& 输入)
+		{
+			*(输出++) = 输入.toUTF16();
+		}
+		void operator()(const CellArray& 输入)
+		{
+			输出 = std::transform(输入.cbegin(), 输入.cend(), 输出, [](const CharArray& 输入) {return 输入.toUTF16(); });
+		}
+		void operator()(const StringArray& 输入)
+		{
+			输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
+		}
+		template<typename T>
+			requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
+		void operator()(T&& 输入)
+		{
+			operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
+		}
+	};
+	template<迭代器值类型是<std::string>迭代器>
+	class 迭代MC<迭代器>
+	{
+		迭代器& 输出;
+	public:
+		迭代MC(迭代器& 输出) :输出(输出) {}
+		void operator()(CharArray&& 输入)
+		{
+			const int 长度 = 输入.getNumberOfElements();
+			(输出++)->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)CharArray(std::move(输入)).release().get(), 长度](char* 指针, size_t 尺寸)
+				{
+					return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr) - 1;
+				});
+		}
+		void operator()(const CellArray& 输入)
+		{
+			for (CharArray& a : 输入)
+			{
+				const int 长度 = a.getNumberOfElements();
+				(输出++)->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)a.release().get(), 长度](char* 指针, size_t 尺寸)
+					{
+						return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr) - 1;
+					});
+			}
+		}
+		void operator()(const StringArray& 输入)
+		{
+			for (const String& 字符串 : 输入)
+			{
+				输出.resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
+					{
+						return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.c_str(), -1, 指针, 尺寸, nullptr, nullptr) - 1;
+					});
+			}
+		}
+		template<typename T>
+			requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
+		void operator()(T&& 输入)
+		{
+			operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
 		}
 	};
 }

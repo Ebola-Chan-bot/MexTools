@@ -48,8 +48,8 @@ namespace Mex工具
 		return apply_visitor(std::move(输入), 标量转换<输出>());
 	}
 	/*一对一转换。支持以下所有转换：
-	将输入C++类型转换为MATLAB标量。如果类型不完全匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
-	将所有能被MATLAB转换为StringArray的Array类型视为标量，或所有被std::ostring::operator<<或std::wostream::operator<<支持的类型，转换为CharArray、MATLABString、String（i.e. std::u16string）或StringArray。自动执行必要的UTF8到UTF16转换。
+	将输入C++类型转换为MATLAB标量。如果类型不完全匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换；如果还不行，还会尝试调用MATLAB引擎转换。
+	将所有能被MATLAB转换为StringArray的Array类型视为标量，或所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型，转换为CharArray、MATLABString、String（i.e. std::u16string）或StringArray。自动执行必要的UTF8到UTF16转换。
 	输入右值引用，这意味着转换后输入对象可能不再可用。
 	*/
 	export template<typename 输出, typename T>
@@ -57,12 +57,12 @@ namespace Mex工具
 	{
 		return 标量转换<输出>::转换(std::move(输入));
 	}
-	/*将MATLAB数组拷出到迭代器。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
+	/*将MATLAB数组拷出到迭代器。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换；如果还不行，还会尝试调用MATLAB引擎转换。
 	特别地，所有能被转换为string的MATLAB类型数组可以被拷出到接受CharArray、MATLABString、String（i.e.std::u16string）、std::string或std::wstring的迭代器。自动执行必要的UTF16到UTF8转换。
-	特别地，如果迭代器是void*，将把MATLAB数组的底层字节直接拷出到目标指针，无论其是否为POD类型。
-	特别地，SparseArray将被展开为满数组。
+	特别地，如果迭代器是void*，将被强制转换为指向数组值类型的指针使用。
+	特别地，SparseArray将被填充为满数组。
 	输入Array右值引用，这意味着转换后输入对象可能不再可用。
-	函数执行后，迭代器将指向拷出的最后一个元素的下一个位置。
+	函数执行后，迭代器将指向拷出的最后一个元素的下一个位置。如果输入稀疏数组，迭代器必须支持使用operator[]的随机写入方式。
 	*/
 	export template<typename 迭代器>
 		void 万能转码(Array&&输入, 迭代器&输出)
@@ -70,8 +70,8 @@ namespace Mex工具
 		apply_visitor(std::move(输入), 迭代MC(输出));
 	}
 	/*从迭代器创建具有指定维度的MATLAB满数组。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
-	特别地，如果输出类型是StringArray，迭代器对应的值类型可以是任何能被MATLAB转换为StringArray的类型，或所有被std::ostring::operator<<或std::wostream::operator<<支持的类型。
-	特别地，如果迭代器是void*，将被解释为指向输出类型的元素类型的指针。
+	特别地，如果输出类型是StringArray，迭代器对应的值类型可以是任何能被MATLAB转换为StringArray的类型，或所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型。
+	特别地，如果迭代器是void*，将被强制转换为指向数组值类型的指针使用。
 	输入ArrayDimensions右值引用，这意味着转换后输入对象可能不再可用。
 	函数执行后，迭代器将指向最后一个元素的下一个位置。
 	*/
