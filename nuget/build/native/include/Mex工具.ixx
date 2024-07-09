@@ -70,13 +70,16 @@ namespace Mex工具
 		apply_visitor(std::move(输入), 迭代MC(输出));
 	}
 	/*从迭代器创建具有指定维度的MATLAB满数组。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
-	特别地，如果输出类型是StringArray，迭代器对应的值类型可以是任何能被MATLAB转换为StringArray的类型，或所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型。
+	特别地，如果输出类型是StringArray，迭代器对应的值类型可以是所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型；如果不支持，还可以是任何能被MATLAB转换为string的MATLAB元素对象（如枚举、分类数组或任何实现了string方法的对象等）
 	特别地，如果迭代器是void*，将被强制转换为指向数组值类型的指针使用。
 	输入ArrayDimensions右值引用，这意味着转换后输入对象可能不再可用。
 	函数执行后，迭代器将指向最后一个元素的下一个位置。
 	*/
-	export template<typename 输出类型,typename 迭代器 >
-		输出类型 万能转码(迭代器&, ArrayDimensions&&);
+	export template<typename 输出类型, typename 迭代器>
+		输出类型 万能转码(迭代器&输入, ArrayDimensions&&各维尺寸)
+	{
+		return 迭代CM<输出类型>::转换(输入, std::move(各维尺寸));
+	}
 
 	//自动析构
 

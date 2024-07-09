@@ -1,4 +1,5 @@
 ﻿module;
+#include <Windows.h>
 export module Mex工具:实现;
 import "MexFunction.hpp";
 import std;
@@ -65,52 +66,52 @@ template<typename T>
 using 取迭代器值类型 = std::remove_cvref_t<decltype(*std::declval<T>())>;
 template<typename T,typename...值类型>
 concept 迭代器值类型是 = _Is_any_of_v<取迭代器值类型<T>, 值类型...>;
+template<typename T>struct 数组类型转元素_s;
+template<typename T>struct 数组类型转元素_s<TypedArray<T>> { using type = T; };
+template<typename T>struct 数组类型转元素_s<SparseArray<T>> { using type = T; };
+template<ArrayType T>struct 动态类型转静态_s { using type = void; };
+template<>struct 动态类型转静态_s<ArrayType::LOGICAL> { using type = bool; };
+template<>struct 动态类型转静态_s<ArrayType::CHAR> { using type = CHAR16_T; };
+template<>struct 动态类型转静态_s<ArrayType::MATLAB_STRING> { using type = MATLABString; };
+template<>struct 动态类型转静态_s<ArrayType::DOUBLE> { using type = double; };
+template<>struct 动态类型转静态_s<ArrayType::SINGLE> { using type = float; };
+template<>struct 动态类型转静态_s<ArrayType::INT8> { using type = int8_t; };
+template<>struct 动态类型转静态_s<ArrayType::INT16> { using type = int16_t; };
+template<>struct 动态类型转静态_s<ArrayType::INT32> { using type = int32_t; };
+template<>struct 动态类型转静态_s<ArrayType::INT64> { using type = int64_t; };
+template<>struct 动态类型转静态_s<ArrayType::UINT8> { using type = uint8_t; };
+template<>struct 动态类型转静态_s<ArrayType::UINT16> { using type = uint16_t; };
+template<>struct 动态类型转静态_s<ArrayType::UINT32> { using type = uint32_t; };
+template<>struct 动态类型转静态_s<ArrayType::UINT64> { using type = uint64_t; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_DOUBLE> { using type = std::complex<double>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_SINGLE> { using type = std::complex<float>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_INT8> { using type = std::complex<int8_t>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_INT16> { using type = std::complex<int16_t>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_INT32> { using type = std::complex<int32_t>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_INT64> { using type = std::complex<int64_t>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_UINT8> { using type = std::complex<uint8_t>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_UINT16> { using type = std::complex<uint16_t>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_UINT32> { using type = std::complex<uint32_t>; };
+template<>struct 动态类型转静态_s<ArrayType::COMPLEX_UINT64> { using type = std::complex<uint64_t>; };
+template<>struct 动态类型转静态_s<ArrayType::CELL> { using type = Array; };
+template<>struct 动态类型转静态_s<ArrayType::STRUCT> { using type = Struct; };
+template<>struct 动态类型转静态_s<ArrayType::ENUM> { using type = Enumeration; };
+template<>struct 动态类型转静态_s<ArrayType::OBJECT> { using type = Object; };
+template<>struct 动态类型转静态_s<ArrayType::SPARSE_LOGICAL> { using type = bool; };
+template<>struct 动态类型转静态_s<ArrayType::SPARSE_DOUBLE> { using type = double; };
+template<>struct 动态类型转静态_s<ArrayType::SPARSE_COMPLEX_DOUBLE> { using type = std::complex<double>; };
+template<typename T>constexpr uint8_t 类型字节数_v = sizeof(T);
+template<>constexpr uint8_t 类型字节数_v<void> = 0;
+template<typename T>struct 类型字节数_s;
+template<std::underlying_type_t<ArrayType>...T>
+struct 类型字节数_s<std::integer_sequence<std::underlying_type_t<ArrayType>, T...>>
+{
+	static constexpr uint8_t value[] = { 类型字节数_v<typename 动态类型转静态_s<(ArrayType)T>::type>... };
+};
 namespace Mex工具
 {
-	template<ArrayType T>struct 动态类型转静态_s { using type = void; };
-	template<>struct 动态类型转静态_s<ArrayType::LOGICAL> { using type = bool; };
-	template<>struct 动态类型转静态_s<ArrayType::CHAR> { using type = CHAR16_T; };
-	template<>struct 动态类型转静态_s<ArrayType::MATLAB_STRING> { using type = MATLABString; };
-	template<>struct 动态类型转静态_s<ArrayType::DOUBLE> { using type = double; };
-	template<>struct 动态类型转静态_s<ArrayType::SINGLE> { using type = float; };
-	template<>struct 动态类型转静态_s<ArrayType::INT8> { using type = int8_t; };
-	template<>struct 动态类型转静态_s<ArrayType::INT16> { using type = int16_t; };
-	template<>struct 动态类型转静态_s<ArrayType::INT32> { using type = int32_t; };
-	template<>struct 动态类型转静态_s<ArrayType::INT64> { using type = int64_t; };
-	template<>struct 动态类型转静态_s<ArrayType::UINT8> { using type = uint8_t; };
-	template<>struct 动态类型转静态_s<ArrayType::UINT16> { using type = uint16_t; };
-	template<>struct 动态类型转静态_s<ArrayType::UINT32> { using type = uint32_t; };
-	template<>struct 动态类型转静态_s<ArrayType::UINT64> { using type = uint64_t; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_DOUBLE> { using type = std::complex<double>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_SINGLE> { using type = std::complex<float>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_INT8> { using type = std::complex<int8_t>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_INT16> { using type = std::complex<int16_t>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_INT32> { using type = std::complex<int32_t>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_INT64> { using type = std::complex<int64_t>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_UINT8> { using type = std::complex<uint8_t>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_UINT16> { using type = std::complex<uint16_t>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_UINT32> { using type = std::complex<uint32_t>; };
-	template<>struct 动态类型转静态_s<ArrayType::COMPLEX_UINT64> { using type = std::complex<uint64_t>; };
-	template<>struct 动态类型转静态_s<ArrayType::CELL> { using type = Array; };
-	template<>struct 动态类型转静态_s<ArrayType::STRUCT> { using type = Struct; };
-	template<>struct 动态类型转静态_s<ArrayType::ENUM> { using type = Enumeration; };
-	template<>struct 动态类型转静态_s<ArrayType::OBJECT> { using type = Object; };
-	template<>struct 动态类型转静态_s<ArrayType::SPARSE_LOGICAL> { using type = bool; };
-	template<>struct 动态类型转静态_s<ArrayType::SPARSE_DOUBLE> { using type = double; };
-	template<>struct 动态类型转静态_s<ArrayType::SPARSE_COMPLEX_DOUBLE> { using type = std::complex<double>; };
-	template<typename T>struct 数组类型转元素_s;
-	template<typename T>struct 数组类型转元素_s<TypedArray<T>> { using type = T; };
-	template<typename T>struct 数组类型转元素_s<SparseArray<T>> { using type = T; };
-	template<typename T>constexpr uint8_t 类型字节数_v = sizeof(T);
-	template<>constexpr uint8_t 类型字节数_v<void> = 0;
-	template<typename T>struct 类型字节数_s;
-	template<std::underlying_type_t<ArrayType>...T>
-	struct 类型字节数_s<std::integer_sequence<std::underlying_type_t<ArrayType>, T...>>
-	{
-		static constexpr uint8_t value[] = { 类型字节数_v<typename 动态类型转静态_s<(ArrayType)T>::type>... };
-	};
 	
-	export extern std::map<void*, std::move_only_function<void(void*)const>>自动析构表;
+	extern std::map<void*, std::move_only_function<void(void*)const>>自动析构表;
 
 	//万能转码实现
 
@@ -326,7 +327,8 @@ namespace Mex工具
 		template<必须显式转换到<值类型>T>
 		void operator()(const TypedArray<T>& 输入)
 		{
-			输出 = std::transform(输入.cbegin(), 输入.cend(), 输出, [](const T& 输入) {return (值类型)输入; });
+			for (T a : 输入)
+				*(输出++) = (值类型)a;
 		}
 		template<必须MATLAB元素转换到<值类型>T>
 		void operator()(TypedArray<T>&& 输入)
@@ -393,7 +395,8 @@ namespace Mex工具
 		}
 		void operator()(const StringArray& 输入)
 		{
-			输出 = std::transform(输入.cbegin(), 输入.cend(), 输出, [](const String& 输入) {return 数组工厂.createCharArray(输入); });
+			for (String a : 输入)
+				*(输出++) = 数组工厂.createCharArray(std::move(a));
 		}
 		template<typename T>
 		requires (!_Is_any_of_v<T,CharArray,CellArray,StringArray>)
@@ -408,13 +411,22 @@ namespace Mex工具
 		迭代器& 输出;
 	public:
 		迭代MC(迭代器& 输出) :输出(输出) {}
-		void operator()(CharArray&& 输入)
+		void operator()(const CharArray& 输入)
 		{
-			*(输出++) = 输入.toUTF16();
+			输出++->resize_and_overwrite(输入.getNumberOfElements(), [&输入](char16_t* 指针, size_t 尺寸)
+				{
+					std::copy(输入.cbegin(), 输入.cend(), 指针);
+					return 输入.getNumberOfElements();
+				});
 		}
 		void operator()(const CellArray& 输入)
 		{
-			输出 = std::transform(输入.cbegin(), 输入.cend(), 输出, [](const CharArray& 输入) {return 输入.toUTF16(); });
+			for (CharArray a : 输入)
+				输出++->resize_and_overwrite(a.getNumberOfElements(), [&a](char16_t* 指针, size_t 尺寸)
+					{
+						std::copy(a.cbegin(), a.cend(), 指针);
+						return a.getNumberOfElements();
+					});
 		}
 		void operator()(const StringArray& 输入)
 		{
@@ -436,7 +448,7 @@ namespace Mex工具
 		void operator()(CharArray&& 输入)
 		{
 			const int 长度 = 输入.getNumberOfElements();
-			(输出++)->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)CharArray(std::move(输入)).release().get(), 长度](char* 指针, size_t 尺寸)
+			输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)CharArray(std::move(输入)).release().get(), 长度](char* 指针, size_t 尺寸)
 				{
 					return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr) - 1;
 				});
@@ -446,7 +458,7 @@ namespace Mex工具
 			for (CharArray& a : 输入)
 			{
 				const int 长度 = a.getNumberOfElements();
-				(输出++)->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)a.release().get(), 长度](char* 指针, size_t 尺寸)
+				输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)a.release().get(), 长度](char* 指针, size_t 尺寸)
 					{
 						return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr) - 1;
 					});
@@ -456,9 +468,9 @@ namespace Mex工具
 		{
 			for (const String& 字符串 : 输入)
 			{
-				输出.resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
+				输出++->resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
 					{
-						return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.c_str(), -1, 指针, 尺寸, nullptr, nullptr) - 1;
+						return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.data(), 字符串.size(), 指针, 尺寸, nullptr, nullptr) - 1;
 					});
 			}
 		}
@@ -467,6 +479,79 @@ namespace Mex工具
 		void operator()(T&& 输入)
 		{
 			operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
+		}
+	};
+	template<迭代器值类型是<std::wstring>迭代器>
+	class 迭代MC<迭代器>
+	{
+		迭代器& 输出;
+	public:
+		迭代MC(迭代器& 输出) :输出(输出) {}
+		void operator()(const CharArray& 输入)
+		{
+			输出++->resize_and_overwrite(输入.getNumberOfElements(), [&输入](wchar_t* 指针, size_t 尺寸)
+				{
+					std::copy(输入.cbegin(), 输入.cend(), 指针);
+					return 输入.getNumberOfElements();
+				});
+		}
+		void operator()(const CellArray& 输入)
+		{
+			for (CharArray a : 输入)
+				输出++->resize_and_overwrite(a.getNumberOfElements(), [&a](wchar_t* 指针, size_t 尺寸)
+					{
+						std::copy(a.cbegin(), a.cend(), 指针);
+						return a.getNumberOfElements();
+					});
+		}
+		void operator()(const StringArray& 输入)
+		{
+			for (String a : 输入)
+				输出++->resize_and_overwrite(a.size(), [&a](wchar_t* 指针, size_t 尺寸)
+					{
+						std::copy(a.cbegin(), a.cend(), 指针);
+						return a.size();
+					});
+		}
+		template<typename T>
+			requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
+		void operator()(T&& 输入)
+		{
+			operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
+		}
+	};
+	template<typename 输出类型>
+	struct 迭代CM;
+	template<typename T>
+	struct 迭代CM<TypedArray<T>>
+	{
+		template<typename 迭代器>
+		static TypedArray<T>转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+		{
+			TypedArray<T> 输出 = 数组工厂.createArray<T>(std::move(各维尺寸));
+			const 迭代器 输入尾 = 输入 + 输出.getNumberOfElements();
+			std::transform(输入, 输入尾, 输出.begin(), [](取迭代器值类型<迭代器>&& a) {return (T)std::move(a); });
+			输入 = 输入尾;
+			return 输出;
+		}
+		template<typename 迭代器>
+		requires std::convertible_to<取迭代器值类型<迭代器>,T>
+		static TypedArray<T>转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+		{
+			TypedArray<T> 输出 = 数组工厂.createArray<T>(std::move(各维尺寸));
+			const 迭代器 输入尾 = 输入 + 输出.getNumberOfElements();
+			std::copy(输入, 输入尾, 输出.begin());
+			输入 = 输入尾;
+			return 输出;
+		}
+	};
+	template<>
+	struct 迭代CM<StringArray>
+	{
+		template<迭代器值类型是<CharArray>迭代器>
+		static StringArray 转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+		{
+
 		}
 	};
 }
