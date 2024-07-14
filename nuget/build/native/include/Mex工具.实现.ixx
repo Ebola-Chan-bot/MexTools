@@ -544,14 +544,35 @@ namespace Mex工具
 			输入 = 输入尾;
 			return 输出;
 		}
+		static TypedArray<T>转换(void*& 输入, ArrayDimensions&& 各维尺寸)
+		{
+			return 转换((T*&)输入, std::move(各维尺寸));
+		}
 	};
 	template<>
 	struct 迭代CM<StringArray>
 	{
-		template<迭代器值类型是<CharArray>迭代器>
+		template<迭代器值类型是<String,MATLABString>迭代器>
 		static StringArray 转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
 		{
-
+			StringArray 输出 = 数组工厂.createArray<MATLABString>(std::move(各维尺寸));
+			const 迭代器 输入尾 = 输入 + 输出.getNumberOfElements();
+			std::copy(输入, 输入尾, 输出.begin());
+			输入 = 输入尾;
+			return 输出;
+		}
+		template<typename 迭代器>
+		static StringArray 转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+		{
+			StringArray 输出 = 数组工厂.createArray<MATLABString>(std::move(各维尺寸));
+			const 迭代器 输入尾 = 输入 + 输出.getNumberOfElements();
+			std::transform(输入, 输入尾, 输出.begin(), 标量转换<MATLABString>::转换<取迭代器值类型<迭代器>>);
+			输入 = 输入尾;
+			return 输出;
+		}
+		static StringArray 转换(void*&输入, ArrayDimensions&& 各维尺寸)
+		{
+			return 转换((MATLABString*&)输入, std::move(各维尺寸));
 		}
 	};
 }
