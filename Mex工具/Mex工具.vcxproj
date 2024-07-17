@@ -69,19 +69,24 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+  <MatlabRoot>$([System.IO.File]::ReadAllText("Mex工具\x64\MATLAB路径.txt"))</MatlabRoot>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-    <ExternalIncludePath>C:\Program Files\MATLAB\R2024b\extern\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(MatlabRoot)\extern\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(MatlabRoot)\extern\lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-    <ExternalIncludePath>C:\Program Files\MATLAB\R2024b\extern\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(MatlabRoot)\extern\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(MatlabRoot)\extern\lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -139,6 +144,9 @@
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell .\获取MATLAB路径.ps1</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -167,15 +175,14 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell .\获取MATLAB路径.ps1</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\nuget\build\native\include\Mex工具.ixx" />
     <ClCompile Include="..\nuget\build\native\include\Mex工具.实现.ixx" />
     <ClCompile Include="Mex工具.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="lib\libMatlabDataArray.lib" />
-    <Library Include="lib\libmex.lib" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />
@@ -185,6 +192,7 @@
     <None Include="..\README.md" />
     <None Include="cpp.hint" />
     <None Include="packages.config" />
+    <None Include="获取MATLAB路径.ps1" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\nuget\build\native\include\MexFunction.hpp" />

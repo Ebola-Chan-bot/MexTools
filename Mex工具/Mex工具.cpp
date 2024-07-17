@@ -1,3 +1,5 @@
+#pragma comment(lib,"libMatlabDataArray.lib")
+#pragma comment(lib,"libmex.lib")
 module;
 #include<magic_enum.hpp>
 #include <Windows.h>

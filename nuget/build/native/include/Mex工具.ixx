@@ -80,6 +80,12 @@ namespace Mex工具
 	{
 		return 迭代CM<输出类型>::转换(输入, std::move(各维尺寸));
 	}
+	//将给定指针直接作为指定MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
+	export template<typename 输出类型>
+		输出类型 万能转码(数组类型转元素<输出类型>* 输入, ArrayDimensions&& 各维尺寸, buffer_deleter_t 自定义删除器)
+	{
+		return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<数组类型转元素<输出类型>>(输入, 自定义删除器));
+	}
 
 	//自动析构
 

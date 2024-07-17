@@ -26,10 +26,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="lib\libMatlabDataArray.lib" />
-    <Library Include="lib\libmex.lib" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="cpp.hint" />
     <None Include="..\nuget\build\native\MATLAB.MexTools.targets" />
     <None Include="..\nuget\MATLAB.MexTools.nuspec" />
@@ -37,6 +33,7 @@
     <None Include="..\README.md" />
     <None Include="..\NuGet打包.ps1" />
     <None Include="packages.config" />
+    <None Include="获取MATLAB路径.ps1" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\nuget\build\native\include\MexFunction.hpp">
