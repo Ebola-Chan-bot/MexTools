@@ -1,1 +1,1 @@
-"$([System.Linq.Enumerable]::Max([System.IO.Directory]::GetDirectories("$env:ProgramFiles\MATLAB")))\extern" > x64\MATLAB路径.txt
+"$([System.Linq.Enumerable]::Max([System.IO.Directory]::GetDirectories("$env:ProgramFiles\MATLAB")))\extern" | Out-File -FilePath "x64\MATLAB路径.txt" -NoNewline

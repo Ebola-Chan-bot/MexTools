@@ -1,8 +1,8 @@
-#pragma comment(lib,"libMatlabDataArray.lib")
-#pragma comment(lib,"libmex.lib")
 module;
 #include<magic_enum.hpp>
 #include <Windows.h>
+#pragma comment(lib,"libMatlabDataArray.lib")
+#pragma comment(lib,"libmex.lib")
 module Mex工具;
 using namespace matlab::data;
 void 类型转换失败()

@@ -70,23 +70,23 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-  <MatlabRoot>$([System.IO.File]::ReadAllText("Mex工具\x64\MATLAB路径.txt"))</MatlabRoot>
+    <MatlabRoot>$([System.IO.File]::ReadAllText("Mex工具\x64\MATLAB路径.txt"))</MatlabRoot>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-    <ExternalIncludePath>$(MatlabRoot)\extern\include;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>$(MatlabRoot)\extern\lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <ExternalIncludePath>$(MatlabRoot)\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(MatlabRoot)\lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-    <ExternalIncludePath>$(MatlabRoot)\extern\include;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>$(MatlabRoot)\extern\lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <ExternalIncludePath>$(MatlabRoot)\include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(MatlabRoot)\lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
