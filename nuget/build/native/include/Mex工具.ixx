@@ -1,4 +1,5 @@
 ﻿export module Mex工具;
+export import <MatlabDataArray.hpp>;
 import :实现;
 namespace Mex工具
 {
@@ -65,7 +66,7 @@ namespace Mex工具
 	函数执行后，迭代器将指向拷出的最后一个元素的下一个位置。如果输入稀疏数组，迭代器必须支持使用operator[]的随机写入方式。
 	*/
 	export template<typename 迭代器>
-		void 万能转码(Array&&输入, 迭代器&输出)
+		inline void 万能转码(Array&&输入, 迭代器&输出)
 	{
 		apply_visitor(std::move(输入), 迭代MC(输出));
 	}
@@ -76,13 +77,13 @@ namespace Mex工具
 	函数执行后，迭代器将指向最后一个元素的下一个位置。
 	*/
 	export template<typename 输出类型, typename 迭代器>
-		输出类型 万能转码(迭代器&输入, ArrayDimensions&&各维尺寸)
+		inline 输出类型 万能转码(迭代器&输入, ArrayDimensions&&各维尺寸)
 	{
 		return 迭代CM<输出类型>::转换(输入, std::move(各维尺寸));
 	}
 	//将给定指针直接作为指定MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
 	export template<typename 输出类型>
-		输出类型 万能转码(数组类型转元素<输出类型>* 输入, ArrayDimensions&& 各维尺寸, buffer_deleter_t 自定义删除器)
+		inline 输出类型 万能转码(数组类型转元素<输出类型>* 输入, ArrayDimensions&& 各维尺寸, buffer_deleter_t 自定义删除器)
 	{
 		return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<数组类型转元素<输出类型>>(输入, 自定义删除器));
 	}

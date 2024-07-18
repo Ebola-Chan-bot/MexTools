@@ -70,23 +70,24 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <MatlabRoot>$([System.IO.File]::ReadAllText("Mex工具\x64\MATLAB路径.txt"))</MatlabRoot>
+    <MatlabExtern>$([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").GetValue($([MSBuild]::Subtract($([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").Length), 1))))</MatlabExtern>
+    <MatlabExtern>$(MatlabExtern)\extern\</MatlabExtern>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-    <ExternalIncludePath>$(MatlabRoot)\include;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>$(MatlabRoot)\lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <ExternalIncludePath>$(MatlabExtern)include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(MatlabExtern)lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-    <ExternalIncludePath>$(MatlabRoot)\include;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>$(MatlabRoot)\lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <ExternalIncludePath>$(MatlabExtern)include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(MatlabExtern)lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -145,7 +146,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell .\获取MATLAB路径.ps1</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -176,7 +178,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell .\获取MATLAB路径.ps1</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -192,10 +195,10 @@
     <None Include="..\README.md" />
     <None Include="cpp.hint" />
     <None Include="packages.config" />
-    <None Include="获取MATLAB路径.ps1" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\nuget\build\native\include\MexFunction.hpp" />
+    <ClInclude Include="..\nuget\build\native\include\Mex工具.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
