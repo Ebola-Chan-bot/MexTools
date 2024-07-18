@@ -74,17 +74,17 @@
     <MatlabExtern>$(MatlabExtern)\extern\</MatlabExtern>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
-    <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
-    <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <OutDir>$(ProjectDir)..\nuget\build\native\$(Configuration)\</OutDir>
+    <TargetName>$(ProjectName).$(PlatformToolsetVersion)</TargetName>
+    <IncludePath>$(ProjectDir)..\nuget\build\native;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     <ExternalIncludePath>$(MatlabExtern)include;$(ExternalIncludePath)</ExternalIncludePath>
     <LibraryPath>$(MatlabExtern)lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
-    <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
-    <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <OutDir>$(ProjectDir)..\nuget\build\native\$(Configuration)\</OutDir>
+    <TargetName>$(ProjectName).$(PlatformToolsetVersion)</TargetName>
+    <IncludePath>$(ProjectDir)..\nuget\build\native;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     <ExternalIncludePath>$(MatlabExtern)include;$(ExternalIncludePath)</ExternalIncludePath>
     <LibraryPath>$(MatlabExtern)lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
@@ -139,6 +139,8 @@
       <EnableModules>true</EnableModules>
       <ExceptionHandling>Async</ExceptionHandling>
       <BuildStlModules>true</BuildStlModules>
+      <ModuleOutputFile>$(OutDir)</ModuleOutputFile>
+      <ModuleDependenciesFile>$(OutDir)</ModuleDependenciesFile>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -169,6 +171,7 @@
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <ExceptionHandling>Async</ExceptionHandling>
       <BuildStlModules>true</BuildStlModules>
+      <ModuleOutputFile>$(OutDir)</ModuleOutputFile>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -183,8 +186,8 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\nuget\build\native\include\Mex工具.ixx" />
-    <ClCompile Include="..\nuget\build\native\include\Mex工具.实现.ixx" />
+    <ClCompile Include="..\nuget\build\native\Mex工具.ixx" />
+    <ClCompile Include="..\nuget\build\native\Mex工具.实现.ixx" />
     <ClCompile Include="Mex工具.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -197,8 +200,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\nuget\build\native\include\MexFunction.hpp" />
-    <ClInclude Include="..\nuget\build\native\include\Mex工具.h" />
+    <ClInclude Include="..\nuget\build\native\MexFunction.hpp" />
+    <ClInclude Include="..\nuget\build\native\Mex工具.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

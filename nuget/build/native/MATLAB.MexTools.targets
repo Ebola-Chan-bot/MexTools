@@ -1,40 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<PropertyGroup>
-		<MatlabPath>$([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").GetValue($([MSBuild]::Subtract($([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").Length), 1))))</MatlabPath>
-		<MatlabPath>$(MatlabPath)\extern\</MatlabPath>
+		<MexTools_MatlabPath>$([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").GetValue($([MSBuild]::Subtract($([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").Length), 1))))</MexTools_MatlabPath>
+		<MexTools_MatlabPath>$(MexTools_MatlabPath)\extern\</MexTools_MatlabPath>
+		<TargetExt>.mexw64</TargetExt>
+		<MexTools_Binaries>$(MSBuildThisFileDirectory)Release\</MexTools_Binaries>
+		<MexTools_Binaries Condition="$(UseDebugLibraries)">$(MSBuildThisFileDirectory)Debug\</MexTools_Binaries>
 	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<ClCompile>
-			<AdditionalIncludeDirectories>$(MatlabPath)include;$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>$(MexTools_MatlabPath)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalBMIDirectories>$(MexTools_Binaries);%(AdditionalBMIDirectories)</AdditionalBMIDirectories>
 		</ClCompile>
 		<ResourceCompile>
-			<AdditionalIncludeDirectories>$(MatlabPath)include;$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>$(MexTools_MatlabPath)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalBMIDirectories>$(MexTools_Binaries);%(AdditionalBMIDirectories)</AdditionalBMIDirectories>
 		</ResourceCompile>
 	</ItemDefinitionGroup>
 	<PropertyGroup>
-		<MatlabPath>$(MatlabPath)lib\win64\microsoft\</MatlabPath>
+		<MexTools_MatlabPath>$(MexTools_MatlabPath)lib\win64\microsoft\</MexTools_MatlabPath>
 	</PropertyGroup>
-	<Choose>
-		<!-- UseDebugLibraries is described in {VS2022}\Msbuild\Microsoft\VC\v170\1033\general_advanced.xml -->
-		<When Condition="$(UseDebugLibraries)">
-			<ItemDefinitionGroup>
-				<Link>
-					<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-				</Link>
-			</ItemDefinitionGroup>
-		</When>
-		<Otherwise>
-			<ItemDefinitionGroup>
-				<Link>
-					<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
-				</Link>
-			</ItemDefinitionGroup>
-		</Otherwise>
-	</Choose>
 	<ItemDefinitionGroup>
 		<Link>
-			<AdditionalDependencies>$(MatlabPath)libMatlabDataArray.lib;$(MatlabPath)libmex.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies></AdditionalDependencies>
+			<AdditionalDependencies>$(MexTools_MatlabPath)libMatlabDataArray.lib;$(MexTools_MatlabPath)libmex.lib;$(MexTools_Binaries)Mex工具.$(PlatformToolsetVersion).lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>

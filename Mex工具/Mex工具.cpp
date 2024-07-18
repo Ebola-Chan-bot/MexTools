@@ -3,7 +3,7 @@ module;
 #include <Windows.h>
 #pragma comment(lib,"libMatlabDataArray.lib")
 #pragma comment(lib,"libmex.lib")
-module Mex工具;
+module MexTools;
 using namespace matlab::data;
 void 类型转换失败()
 {

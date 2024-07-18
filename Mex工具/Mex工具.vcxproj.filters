@@ -18,10 +18,10 @@
     <ClCompile Include="Mex工具.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\nuget\build\native\include\Mex工具.ixx">
+    <ClCompile Include="..\nuget\build\native\Mex工具.ixx">
       <Filter>头文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\nuget\build\native\include\Mex工具.实现.ixx">
+    <ClCompile Include="..\nuget\build\native\Mex工具.实现.ixx">
       <Filter>头文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -33,10 +33,12 @@
     <None Include="..\README.md" />
     <None Include="..\NuGet打包.ps1" />
     <None Include="packages.config" />
-    <None Include="获取MATLAB路径.ps1" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\nuget\build\native\include\MexFunction.hpp">
+    <ClInclude Include="..\nuget\build\native\MexFunction.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nuget\build\native\Mex工具.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
