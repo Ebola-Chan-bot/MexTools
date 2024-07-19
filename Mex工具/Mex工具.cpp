@@ -4,6 +4,11 @@ module;
 #pragma comment(lib,"libMatlabDataArray.lib")
 #pragma comment(lib,"libmex.lib")
 module Mex工具;
+//模块不能包含或导入<Windows.h>，会导致编译出的IFC不可用，所以必须要用这个适配器函数
+int WCTMB(const wchar_t*宽字符串,int 宽字符数,char*输出字节,int 缓冲大小)
+{
+	return WideCharToMultiByte(CP_UTF8, 0, 宽字符串, 宽字符数, 输出字节, 缓冲大小, nullptr, nullptr);
+}
 using namespace matlab::data;
 void 类型转换失败()
 {
@@ -217,14 +222,9 @@ void MexFunction::operator()(ArgumentList outputs, ArgumentList inputs)
 		throw matlab::engine::MATLABException(异常文本, Mex工具::万能转码<String>(异常文本));
 	}
 }
-void 枚举(EnumArray 枚举数组)
-{
-	String 字符串=Mex工具::万能转码<String>(枚举数组);
-}
 MexFunction::~MexFunction()
 {
 	清理();
 	for (const auto& a : Mex工具::自动析构表)
 		a.second(a.first);
 }
-static constexpr volatile void* 导出列表[] = { mexCreateMexFunction, mexDestroyMexFunction ,mexFunctionAdapter };

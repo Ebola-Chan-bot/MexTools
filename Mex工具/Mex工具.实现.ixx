@@ -1,6 +1,4 @@
-﻿module;
-#include <Windows.h>
-export module Mex工具:实现;
+﻿export module Mex工具:实现;
 import "MexFunction.hpp";
 import std;
 using namespace matlab::data;
@@ -108,6 +106,7 @@ struct 类型字节数_s<std::integer_sequence<std::underlying_type_t<ArrayType>
 {
 	static constexpr uint8_t value[] = { 类型字节数_v<typename 动态类型转静态_s<(ArrayType)T>::type>... };
 };
+int WCTMB(const wchar_t* 宽字符串, int 宽字符数, char* 输出字节, int 缓冲大小);
 namespace Mex工具
 {
 	
@@ -273,6 +272,7 @@ namespace Mex工具
 		{
 			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0];
 		}
+		
 	};
 	template<>
 	struct 标量转换<MATLABString>
@@ -450,7 +450,7 @@ namespace Mex工具
 			const int 长度 = 输入.getNumberOfElements();
 			输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)CharArray(std::move(输入)).release().get(), 长度](char* 指针, size_t 尺寸)
 				{
-					return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr) - 1;
+					return WCTMB(宽指针, 长度, 指针, 尺寸) - 1;
 				});
 		}
 		void operator()(const CellArray& 输入)
@@ -460,7 +460,7 @@ namespace Mex工具
 				const int 长度 = a.getNumberOfElements();
 				输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)a.release().get(), 长度](char* 指针, size_t 尺寸)
 					{
-						return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr) - 1;
+						return WCTMB(宽指针, 长度, 指针, 尺寸) - 1;
 					});
 			}
 		}
@@ -470,7 +470,7 @@ namespace Mex工具
 			{
 				输出++->resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
 					{
-						return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.data(), 字符串.size(), 指针, 尺寸, nullptr, nullptr) - 1;
+						return WCTMB((wchar_t*)字符串.data(), 字符串.size(), 指针, 尺寸) - 1;
 					});
 			}
 		}

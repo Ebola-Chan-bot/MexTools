@@ -11,10 +11,12 @@
 		<ClCompile>
 			<AdditionalIncludeDirectories>$(MexTools_MatlabPath)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalBMIDirectories>$(MexTools_Binaries);%(AdditionalBMIDirectories)</AdditionalBMIDirectories>
+			<LanguageStandard>stdcpplatest</LanguageStandard>
 		</ClCompile>
 		<ResourceCompile>
 			<AdditionalIncludeDirectories>$(MexTools_MatlabPath)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalBMIDirectories>$(MexTools_Binaries);%(AdditionalBMIDirectories)</AdditionalBMIDirectories>
+			<LanguageStandard>stdcpplatest</LanguageStandard>
 		</ResourceCompile>
 	</ItemDefinitionGroup>
 	<PropertyGroup>

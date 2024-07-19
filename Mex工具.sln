@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mex工具", "Mex工具\Mex工具.vcxproj", "{CE6CE462-A955-46A7-BB11-895054EF51EA}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mexw64示例", "Mexw64示例\Mexw64示例.vcxproj", "{5945B619-B8B9-4054-9913-DA0312B9B91A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CE6CE462-A955-46A7-BB11-895054EF51EA} = {CE6CE462-A955-46A7-BB11-895054EF51EA}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
