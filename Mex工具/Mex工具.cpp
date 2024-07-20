@@ -1,19 +1,11 @@
-module;
-#include<magic_enum.hpp>
+#include "Mex工具.hpp"
+#include <magic_enum.hpp>
+#include <mexAdapter.hpp>
 #include <Windows.h>
+#include <map>
 #pragma comment(lib,"libMatlabDataArray.lib")
 #pragma comment(lib,"libmex.lib")
-module Mex工具;
-//模块不能包含或导入<Windows.h>，会导致编译出的IFC不可用，所以必须要用这个适配器函数
-int WCTMB(const wchar_t*宽字符串,int 宽字符数,char*输出字节,int 缓冲大小)
-{
-	return WideCharToMultiByte(CP_UTF8, 0, 宽字符串, 宽字符数, 输出字节, 缓冲大小, nullptr, nullptr);
-}
 using namespace matlab::data;
-void 类型转换失败()
-{
-	throw Mex工具::Mex异常::Type_conversion_failed;
-}
 namespace Mex工具
 {
 	ArrayFactory 数组工厂;
@@ -35,7 +27,7 @@ namespace Mex工具
 		}
 	}
 	template<>
-	MATLABString Mex工具::万能转码<MATLABString>(Array&& 输入)
+	MATLABString 万能转码<MATLABString>(Array&& 输入)
 	{
 		switch (输入.getType())
 		{
@@ -50,7 +42,7 @@ namespace Mex工具
 		}
 	}
 	template<>
-	String Mex工具::万能转码<String>(Array&& 输入)
+	String 万能转码<String>(Array&& 输入)
 	{
 		switch (输入.getType())
 		{
@@ -65,7 +57,7 @@ namespace Mex工具
 		}
 	}
 	template<>
-	std::string Mex工具::万能转码<std::string>(Array&& 输入)
+	std::string 万能转码<std::string>(Array&& 输入)
 	{
 		std::string 输出;
 		switch (输入.getType())
@@ -109,7 +101,7 @@ namespace Mex工具
 		return 输出;
 	}
 	template<>
-	StringArray Mex工具::万能转码<StringArray>(Array&& 输入)
+	StringArray 万能转码<StringArray>(Array&& 输入)
 	{
 		switch (输入.getType())
 		{
@@ -134,7 +126,7 @@ namespace Mex工具
 		}
 	}
 	template<>
-	std::wstring Mex工具::万能转码<std::wstring>(Array&& 输入)
+	std::wstring 万能转码<std::wstring>(Array&& 输入)
 	{
 		switch (输入.getType())
 		{
@@ -161,20 +153,27 @@ namespace Mex工具
 		}
 		}
 	}
-	CharArray 标量转换<CharArray>::转换(const char* 输入, size_t 长度)
+	namespace 内部
 	{
-		buffer_ptr_t<char16_t> 缓冲 = Mex工具::数组工厂.createBuffer<char16_t>(长度 + 1);
-		长度 = MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)缓冲.get(), 长度 + 1) - 1;
-		return Mex工具::数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
-	}
-	String 标量转换<String>::转换(const char* 输入, size_t 长度)
-	{
-		String 返回;
-		返回.resize_and_overwrite(长度 + 1, [输入, 长度](char16_t* 指针, size_t 尺寸)
-			{
-				return MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)指针, 尺寸) - 1;
-			});
-		return 返回;
+		CharArray 标量转换<CharArray>::转换(const char* 输入, size_t 长度)
+		{
+			buffer_ptr_t<char16_t> 缓冲 = Mex工具::数组工厂.createBuffer<char16_t>(长度 + 1);
+			长度 = MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)缓冲.get(), 长度 + 1) - 1;
+			return Mex工具::数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
+		}
+		String 标量转换<String>::转换(const char* 输入, size_t 长度)
+		{
+			String 返回;
+			返回.resize_and_overwrite(长度 + 1, [输入, 长度](char16_t* 指针, size_t 尺寸)
+				{
+					return MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)指针, 尺寸) - 1;
+				});
+			return 返回;
+		}
+		int WCTMB(const wchar_t* 宽字符串, int 宽字符数, char* 字节缓冲, int 缓冲长度)
+		{
+			return WideCharToMultiByte(CP_UTF8, 0, 宽字符串, 宽字符数, 字节缓冲, 缓冲长度, nullptr, nullptr) - 1;
+		}
 	}
 }
 using namespace Mex工具;

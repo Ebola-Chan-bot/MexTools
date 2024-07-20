@@ -18,10 +18,10 @@
     <ClCompile Include="Mex工具.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Mex工具.ixx">
+    <ClCompile Include="..\nuget\build\native\Mex工具.hpp">
       <Filter>头文件</Filter>
     </ClCompile>
-    <ClCompile Include="Mex工具实现.ixx">
+    <ClCompile Include="..\nuget\build\native\Mex工具.前置.hpp">
       <Filter>头文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,7 +35,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MexFunction.hpp">
+    <ClInclude Include="..\nuget\build\native\Mex工具.后置.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -9,26 +9,24 @@
 		<!--必须创建新属性，不能在使用后覆盖MatlabExtern。因为XML不保证运行顺序。-->
 		
 		<TargetExt>.mexw64</TargetExt>
-		<MexTools_Binaries>$(MSBuildThisFileDirectory)Release\</MexTools_Binaries>
-		<MexTools_Binaries Condition="$(UseDebugLibraries)">$(MSBuildThisFileDirectory)Debug\</MexTools_Binaries>
+		<MexTools_Configuration>Release</MexTools_Configuration>
+		<MexTools_Configuration Condition="$(UseDebugLibraries)">Debug</MexTools_Configuration>
 	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<ClCompile>
-			<AdditionalIncludeDirectories>$(MexTools_MatlabExtern)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<AdditionalBMIDirectories>$(MexTools_Binaries);%(AdditionalBMIDirectories)</AdditionalBMIDirectories>
+			<AdditionalIncludeDirectories>$(MexTools_MatlabExtern)include;$(MSBuildThisFileDirectory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<LanguageStandard>stdcpplatest</LanguageStandard>
 			<SDLCheck>false</SDLCheck>
 		</ClCompile>
 		<ResourceCompile>
-			<AdditionalIncludeDirectories>$(MexTools_MatlabExtern)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<AdditionalBMIDirectories>$(MexTools_Binaries);%(AdditionalBMIDirectories)</AdditionalBMIDirectories>
+			<AdditionalIncludeDirectories>$(MexTools_MatlabExtern)include;$(MSBuildThisFileDirectory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<LanguageStandard>stdcpplatest</LanguageStandard>
 			<SDLCheck>false</SDLCheck>
 		</ResourceCompile>
 	</ItemDefinitionGroup>
 	<ItemDefinitionGroup>
 		<Link>
-			<AdditionalDependencies>$(MexTools_MatlabLib)libMatlabDataArray.lib;$(MexTools_MatlabLib)libmex.lib;$(MexTools_Binaries)Mex工具.$(PlatformToolsetVersion).lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>$(MexTools_MatlabLib)libMatlabDataArray.lib;$(MexTools_MatlabLib)libmex.lib;$(MexTools_Binaries)Mex工具.$(PlatformToolsetVersion).$(MexTools_Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>
