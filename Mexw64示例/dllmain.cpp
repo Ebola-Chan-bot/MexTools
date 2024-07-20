@@ -18,3 +18,5 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 }
 
 import Mex工具;
+#include <MatlabDataArray.hpp>
+using namespace matlab::data;

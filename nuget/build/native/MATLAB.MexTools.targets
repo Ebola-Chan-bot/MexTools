@@ -2,33 +2,33 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<PropertyGroup>
 		
-		<MexTools_MatlabPath>$([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").GetValue($([MSBuild]::Subtract($([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").Length), 1))))</MexTools_MatlabPath>
+		<MexTools_MatlabExtern>$([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").GetValue($([MSBuild]::Subtract($([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").Length), 1))))\extern\</MexTools_MatlabExtern>
 		<!--这句使用了.GetValue()而不是方括号索引，因为方括号索引中不能调用属性函数-->
 		
-		<MexTools_MatlabPath>$(MexTools_MatlabPath)\extern\</MexTools_MatlabPath>
+		<MexTools_MatlabLib>$(MexTools_MatlabExtern)lib\win64\microsoft\</MexTools_MatlabLib>
+		<!--必须创建新属性，不能在使用后覆盖MatlabExtern。因为XML不保证运行顺序。-->
+		
 		<TargetExt>.mexw64</TargetExt>
 		<MexTools_Binaries>$(MSBuildThisFileDirectory)Release\</MexTools_Binaries>
 		<MexTools_Binaries Condition="$(UseDebugLibraries)">$(MSBuildThisFileDirectory)Debug\</MexTools_Binaries>
 	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<ClCompile>
-			<AdditionalIncludeDirectories>$(MexTools_MatlabPath)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>$(MexTools_MatlabExtern)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalBMIDirectories>$(MexTools_Binaries);%(AdditionalBMIDirectories)</AdditionalBMIDirectories>
 			<LanguageStandard>stdcpplatest</LanguageStandard>
+			<SDLCheck>false</SDLCheck>
 		</ClCompile>
 		<ResourceCompile>
-			<AdditionalIncludeDirectories>$(MexTools_MatlabPath)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>$(MexTools_MatlabExtern)include;$(MexTools_Binaries);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalBMIDirectories>$(MexTools_Binaries);%(AdditionalBMIDirectories)</AdditionalBMIDirectories>
 			<LanguageStandard>stdcpplatest</LanguageStandard>
+			<SDLCheck>false</SDLCheck>
 		</ResourceCompile>
 	</ItemDefinitionGroup>
-	<PropertyGroup>
-		<MexTools_MatlabPath>$(MexTools_MatlabPath)lib\win64\microsoft\</MexTools_MatlabPath>
-	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<Link>
-			<AdditionalDependencies></AdditionalDependencies>
-			<AdditionalDependencies>$(MexTools_MatlabPath)libMatlabDataArray.lib;$(MexTools_MatlabPath)libmex.lib;$(MexTools_Binaries)Mex工具.$(PlatformToolsetVersion).lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>$(MexTools_MatlabLib)libMatlabDataArray.lib;$(MexTools_MatlabLib)libmex.lib;$(MexTools_Binaries)Mex工具.$(PlatformToolsetVersion).lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>
