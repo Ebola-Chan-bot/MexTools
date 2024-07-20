@@ -43,15 +43,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -75,7 +75,7 @@
     <MatlabExtern>$(MatlabExtern)\extern\</MatlabExtern>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(ProjectDir)..\nuget\build\native\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)nuget\build\native\$(Configuration)\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -83,7 +83,7 @@
     <LibraryPath>$(MatlabExtern)lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(ProjectDir)..\nuget\build\native\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)nuget\build\native\$(Configuration)\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion)</TargetName>
     <IncludePath>$(ProjectDir)..\nuget\build\native;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
     <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -141,7 +141,6 @@
       <ExceptionHandling>Async</ExceptionHandling>
       <BuildStlModules>true</BuildStlModules>
       <ModuleOutputFile>$(OutDir)</ModuleOutputFile>
-      <ModuleDependenciesFile>$(OutDir)</ModuleDependenciesFile>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -187,10 +186,9 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\nuget\build\native\Mex工具.ixx" />
     <ClCompile Include="Mex工具.cpp" />
-    <ClCompile Include="Mex工具.实现.ixx" />
-    <ClCompile Include="Module.ixx" />
+    <ClCompile Include="Mex工具.ixx" />
+    <ClCompile Include="Mex工具实现.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />

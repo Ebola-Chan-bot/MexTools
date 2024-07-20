@@ -17,4 +17,4 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
-import Modul;
+import Mex工具;

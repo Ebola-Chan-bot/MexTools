@@ -18,13 +18,10 @@
     <ClCompile Include="Mex工具.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\nuget\build\native\Mex工具.ixx">
+    <ClCompile Include="Mex工具.ixx">
       <Filter>头文件</Filter>
     </ClCompile>
-    <ClCompile Include="Mex工具.实现.ixx">
-      <Filter>头文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Module.ixx">
+    <ClCompile Include="Mex工具实现.ixx">
       <Filter>头文件</Filter>
     </ClCompile>
   </ItemGroup>
