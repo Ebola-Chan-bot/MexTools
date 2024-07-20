@@ -17,7 +17,9 @@
 mono_crash.*
 
 # Build results
+# [Dd]ebug 需要保留里面的.ifc，不能忽略
 [Dd]ebugPublic/
+# [Rr]elease 需要保留里面的.ifc，不能忽略
 [Rr]eleases/
 x64/
 x86/
