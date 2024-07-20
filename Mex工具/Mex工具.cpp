@@ -1,5 +1,4 @@
 #include "Mex工具.hpp"
-#include <magic_enum.hpp>
 #include <mexAdapter.hpp>
 #include <Windows.h>
 import std;
@@ -198,7 +197,7 @@ static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		throw Mex异常::Unexpected_SEH_exception;
+		EnumThrow(Mex异常::Unexpected_SEH_exception);
 	}
 }
 MexFunction::MexFunction()
@@ -210,28 +209,17 @@ void MexFunction::operator()(ArgumentList outputs, ArgumentList inputs)
 {
 	try
 	{
-		try
-		{
-			SEH安全(outputs, inputs);
-		}
-		catch (Mex异常)
-		{
-			throw;
-		}
-		catch (const std::exception&)
-		{
-			//标准异常由MATLAB负责捕获
-			throw;
-		}
-		catch (...)
-		{
-			throw Mex异常::Unexpected_CPP_exception;
-		}
+		SEH安全(outputs, inputs);
 	}
-	catch (Mex异常 e)
+	catch (const std::exception&)
 	{
-		const std::string 异常文本(magic_enum::enum_name(e));
-		throw matlab::engine::MATLABException(异常文本, 万能转码<String>(异常文本));
+		//标准异常由MATLAB负责捕获，这里直接重抛
+		throw;
+	}
+	catch (...)
+	{
+		//无法识别的异常，转换为统一的信息
+		EnumThrow(Mex异常::Unexpected_CPP_exception);
 	}
 }
 MexFunction::~MexFunction()

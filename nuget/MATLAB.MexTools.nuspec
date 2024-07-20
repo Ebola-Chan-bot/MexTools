@@ -17,6 +17,9 @@
 			万能转码标量转换检查空数组，异常类型改为 enum class
 		</releaseNotes>
 		<readme>README.md</readme>
+		<dependencies>
+			<dependency id="native.magic_enum" version="0.9.5" />
+		</dependencies>
 	</metadata>
 	<!-- 不能指定files，否则只会包含files中的文件 -->
 </package>

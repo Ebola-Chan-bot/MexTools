@@ -1,17 +1,28 @@
 ﻿#pragma once
+#include <magic_enum.hpp>
 #include "Mex工具.前置.hpp"
 namespace Mex工具
 {
 	using namespace matlab::data;
 	using namespace 内部;
+
+	//标准MEX函数签名。你可以定义多个具有如此签名的函数，然后由执行函数负责分发。
+#define Mex工具API(API名称) void API名称(matlab::mex::ArgumentList& 输出, matlab::mex::ArgumentList& 输入)
+
 	//用户必须定义以下函数
 
-	//全局初始化，在MATLAB首次载入MEX时调用。用户应当在此函数中进行全局变量初始化、持久资源分配等不应在每次调用时重复进行的操作。全局变量也可以在本函数外初始化，但这样做不能保证初始化顺序，仅适用于不依赖其它全局变量的情况。在此方法中进行具有严格顺序依赖要求的全局变量初始化。
-	 void 初始化();
+	/*全局初始化，在MATLAB首次载入MEX时调用。用户应当在此函数中进行全局变量初始化、持久资源分配等不应在每次调用时重复进行的操作。全局变量也可以在本函数外初始化，但这样做不能保证初始化顺序，仅适用于不依赖其它全局变量的情况。在此方法中进行具有严格顺序依赖要求的全局变量初始化。
+	初始化约定为noexcept。不应在初始化阶段抛出任何异常。
+	*/
+	 void 初始化()noexcept;
 	//执行调用，MATLAB每次调用MEX文件函数时调用此方法。用户应当在此函数中处理输入参数，充分利用初始化阶段分配的持久资源，然后将结果写入输出参数
-	 void 执行(matlab::mex::ArgumentList& 输出, matlab::mex::ArgumentList& 输入);
-	//全局清理，在MATLAB卸载MEX（包括 clear mex 以及MATLAB会话退出）时调用。用户应当在此函数中释放全局变量、持久资源等
-	 void 清理();
+	 Mex工具API(执行);
+	/*全局清理，在MATLAB卸载MEX（包括 clear mex 以及MATLAB会话退出）时调用。用户应当在此函数中释放全局变量、持久资源等	
+	清理约定为noexcept。不应在清理阶段抛出任何异常。
+	*/
+	 void 清理()noexcept;
+	 //标准MEX函数指针类型，便于构建跳转表，将参数分发到单个MEX文件中的多个函数。例如，可以在执行函数中构建一个该类型的数组，然后根据输入参数选择调用哪个函数。
+	 using API = decltype(执行)*;
 
 	//类型相关模板
 
@@ -32,7 +43,7 @@ namespace Mex工具
 		return 类型字节数[(size_t)输入.getType()] * 输入.getNumberOfElements();
 	}
 
-	//有用的全局变量。不要在初始化之前使用这些变量。在初始化中及以后可以使用，但通常不应该修改这些变量。
+	//有用的全局变量。这些变量会在用户定义的初始化之前被自动初始化，但在进入用户初始化之前这些变量可能尚未初始化，因此用户不应依赖这些变量进行全局变量初始化。在进入用户初始化以后可以使用，但通常不应该修改这些变量。
 
 	 extern ArrayFactory 数组工厂;
 	 extern std::shared_ptr<matlab::engine::MATLABEngine> MATLAB引擎;
@@ -52,12 +63,12 @@ namespace Mex工具
 	/*一对一转换。支持以下所有转换：
 	将输入C++类型转换为MATLAB标量。如果类型不完全匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换；如果还不行，还会尝试调用MATLAB引擎转换。
 	将所有能被MATLAB转换为StringArray的Array类型视为标量，或所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型，转换为CharArray、MATLABString、String（i.e. std::u16string）或StringArray。自动执行必要的UTF8到UTF16转换。
-	输入右值引用，这意味着转换后输入对象可能不再可用。
+	最好使用std::move输入右值引用。某些转换支持常量引用，某些不支持，可以根据是否能通过编译来判定。
 	*/
 	 template<typename 输出, typename T>
 		inline 输出 万能转码(T&& 输入)
 	{
-		return 标量转换<输出>::转换(std::move(输入));
+		return 标量转换<输出>::转换(std::forward<T>(输入));
 	}
 	/*将MATLAB数组拷出到迭代器。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换；如果还不行，还会尝试调用MATLAB引擎转换。
 	特别地，所有能被转换为string的MATLAB类型数组可以被拷出到接受CharArray、MATLABString、String（i.e.std::u16string）、std::string或std::wstring的迭代器。自动执行必要的UTF16到UTF8转换。
@@ -124,5 +135,20 @@ namespace Mex工具
 		 Unexpected_SEH_exception,
 		 Unexpected_CPP_exception
 	 };
+
+	 /*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将同时作为MException的identifier和message，因此只能使用英文、数字和下划线。
+	 MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
+	 用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
+	 和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
+	 */
+	 template<typename T>
+	 [[noreturn]]inline void EnumThrow(T 异常)
+	 {
+		 std::ostringstream 异常信息流;
+		 for (const char* 字符指针 = typeid(T).name(); const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
+			 异常信息流 << 字符;
+		 const std::string 异常信息 = (异常信息流 << ':' << magic_enum::enum_name(异常)).str();
+		 throw matlab::engine::MATLABException(异常信息, 万能转码<String>(异常信息));
+	 }
 }
 #include"Mex工具.后置.hpp"
