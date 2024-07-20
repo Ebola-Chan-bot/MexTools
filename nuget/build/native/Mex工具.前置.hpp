@@ -569,6 +569,5 @@ namespace Mex工具
 				return 转换((MATLABString*&)输入, std::move(各维尺寸));
 			}
 		};
-		void 自动析构(void*指针,std::move_only_function<void(void*);
 	}
 }

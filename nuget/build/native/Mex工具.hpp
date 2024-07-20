@@ -17,7 +17,7 @@ namespace Mex工具
 
 	//此变量模板将静态的数组元素类型转换为ArrayType枚举值
 	 template<typename T>
-		extern constexpr ArrayType 静态类型转动态 = GetArrayType<T>::type;
+	 constexpr ArrayType 静态类型转动态 = GetArrayType<T>::type;
 	//此别名模板将ArrayType枚举值转换为静态的数组元素类型
 	 template<ArrayType T>
 		using 动态类型转静态 = typename 动态类型转静态_s<T>::type;
@@ -32,7 +32,7 @@ namespace Mex工具
 		return 类型字节数[(size_t)输入.getType()] * 输入.getNumberOfElements();
 	}
 
-	//有用的全局变量
+	//有用的全局变量。不要在初始化之前使用这些变量。在初始化中及以后可以使用，但通常不应该修改这些变量。
 
 	 extern ArrayFactory 数组工厂;
 	 extern std::shared_ptr<matlab::engine::MATLABEngine> MATLAB引擎;
@@ -78,29 +78,31 @@ namespace Mex工具
 	函数执行后，迭代器将指向最后一个元素的下一个位置。
 	*/
 	 template<typename 输出类型, typename 迭代器>
-		inline 输出类型 万能转码(迭代器& 输入, ArrayDimensions&& 各维尺寸)
-	{
-		return 迭代CM<输出类型>::转换(输入, std::move(各维尺寸));
-	}
+	 inline 输出类型 万能转码(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+	 {
+		 return 迭代CM<输出类型>::转换(输入, std::move(各维尺寸));
+	 }
 	//将给定指针直接作为指定MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
 	 template<typename 输出类型>
-		inline 输出类型 万能转码(数组类型转元素<输出类型>* 输入, ArrayDimensions&& 各维尺寸, buffer_deleter_t 自定义删除器)
-	{
-		return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<数组类型转元素<输出类型>>(输入, 自定义删除器));
-	}
+	 inline 输出类型 万能转码(数组类型转元素<输出类型>* 输入, ArrayDimensions&& 各维尺寸, buffer_deleter_t 自定义删除器)
+	 {
+		 return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<数组类型转元素<输出类型>>(输入, 自定义删除器));
+	 }
 
 	//自动析构
 
-	//将对象指针加入自动析构表。clear mex 时此指针将被自动delete。只能对new创建的对象指针使用此方法。
-	 template<typename T>
-	 inline void 自动析构(T* 对象指针)noexcept;
 	//将对象指针加入自动析构表。clear mex 时此对象将被自动析构。使用指定的删除器。
+	 void 自动析构(void* 对象指针, std::move_only_function<void(void*)const>&& 删除器)noexcept;
+	 //将对象指针加入自动析构表。clear mex 时此指针将被自动delete。只能对new创建的对象指针使用此方法。
 	 template<typename T>
-	 inline void 自动析构(T* 对象指针, std::move_only_function<void(void*)>&& 删除器)noexcept;
-	//此方法用于提示指定对象已被自动析构，从而避免自动析构表重复析构。此方法不负责析构对象本身，对象本身仍由调用方负责析构。
-	 inline bool 手动析构(void* 对象指针)noexcept;
+	 inline void 自动析构(T* 对象指针)noexcept
+	 {
+		 自动析构(对象指针, [](void* 对象指针) {delete (T*)对象指针; });
+	 }
+	//此方法用于提示指定对象已被自动析构，从而避免自动析构表重复析构。此方法不负责析构对象本身，对象本身仍由调用方负责析构。返回对象指针是否曾经存在于自动析构表中。
+	 bool 手动析构(void* 对象指针)noexcept;
 	//检查对象指针是否存在于自动析构表中。如不存在，此指针可能是无效的，或者创建时未加入自动析构表。
-	 inline bool 对象存在(void* 对象指针)noexcept;
+	 bool 对象存在(void* 对象指针)noexcept;
 
 	 //Mex工具可能会抛出的异常类型。除此之外，非本工具实现的代码还可能抛出std::exception及其派生类。
 	 enum class Mex异常

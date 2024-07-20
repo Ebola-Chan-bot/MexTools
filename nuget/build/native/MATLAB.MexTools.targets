@@ -26,7 +26,7 @@
 	</ItemDefinitionGroup>
 	<ItemDefinitionGroup>
 		<Link>
-			<AdditionalDependencies>$(MexTools_MatlabLib)libMatlabDataArray.lib;$(MexTools_MatlabLib)libmex.lib;$(MexTools_Binaries)Mex工具.$(PlatformToolsetVersion).$(MexTools_Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>$(MexTools_MatlabLib)libMatlabDataArray.lib;$(MexTools_MatlabLib)libmex.lib;$(MSBuildThisFileDirectory)Mex工具.$(PlatformToolsetVersion).$(MexTools_Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 </Project>

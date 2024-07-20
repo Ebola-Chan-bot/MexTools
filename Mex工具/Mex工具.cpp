@@ -2,7 +2,7 @@
 #include <magic_enum.hpp>
 #include <mexAdapter.hpp>
 #include <Windows.h>
-#include <map>
+import std;
 #pragma comment(lib,"libMatlabDataArray.lib")
 #pragma comment(lib,"libmex.lib")
 using namespace matlab::data;
@@ -153,6 +153,18 @@ namespace Mex工具
 		}
 		}
 	}
+	void 自动析构(void* 指针, std::move_only_function<void(void*)const>&& 删除器)noexcept
+	{
+		自动析构表[指针] = std::move(删除器);
+	}
+	bool 手动析构(void* 指针)noexcept
+	{
+		return 自动析构表.erase(指针);
+	}
+	bool 对象存在(void* 指针)noexcept
+	{
+		return 自动析构表.contains(指针);
+	}
 	namespace 内部
 	{
 		CharArray 标量转换<CharArray>::转换(const char* 输入, size_t 长度)
@@ -186,12 +198,12 @@ static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		throw Mex工具::Mex异常::Unexpected_SEH_exception;
+		throw Mex异常::Unexpected_SEH_exception;
 	}
 }
 MexFunction::MexFunction()
 {
-	Mex工具::MATLAB引擎 = getEngine();
+	MATLAB引擎 = getEngine();
 	初始化();
 }
 void MexFunction::operator()(ArgumentList outputs, ArgumentList inputs)
@@ -202,28 +214,29 @@ void MexFunction::operator()(ArgumentList outputs, ArgumentList inputs)
 		{
 			SEH安全(outputs, inputs);
 		}
-		catch (Mex工具::Mex异常)
+		catch (Mex异常)
 		{
 			throw;
 		}
 		catch (const std::exception&)
 		{
+			//标准异常由MATLAB负责捕获
 			throw;
 		}
 		catch (...)
 		{
-			throw Mex工具::Mex异常::Unexpected_CPP_exception;
+			throw Mex异常::Unexpected_CPP_exception;
 		}
 	}
-	catch (Mex工具::Mex异常 e)
+	catch (Mex异常 e)
 	{
 		const std::string 异常文本(magic_enum::enum_name(e));
-		throw matlab::engine::MATLABException(异常文本, Mex工具::万能转码<String>(异常文本));
+		throw matlab::engine::MATLABException(异常文本, 万能转码<String>(异常文本));
 	}
 }
 MexFunction::~MexFunction()
 {
 	清理();
-	for (const auto& a : Mex工具::自动析构表)
+	for (const auto& a : 自动析构表)
 		a.second(a.first);
 }
