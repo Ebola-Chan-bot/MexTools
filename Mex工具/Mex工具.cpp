@@ -198,58 +198,6 @@ namespace Mex工具
 			throw 异常;
 		}
 	}
-	Array 万能转码(ArrayType 元素类型, void* 输入, ArrayDimensions&& 各维尺寸, buffer_deleter_t 自定义删除器)
-	{
-		switch (元素类型)
-		{
-		case ArrayType::LOGICAL:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<bool>((bool*)输入, 自定义删除器));
-		case ArrayType::CHAR:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<char16_t>((char16_t*)输入, 自定义删除器));
-		case ArrayType::DOUBLE:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<double>((double*)输入, 自定义删除器));
-		case ArrayType::SINGLE:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<float>((float*)输入, 自定义删除器));
-		case ArrayType::INT8:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<int8_t>((int8_t*)输入, 自定义删除器));
-		case ArrayType::INT16:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<int16_t>((int16_t*)输入, 自定义删除器));
-		case ArrayType::INT32:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<int32_t>((int32_t*)输入, 自定义删除器));
-		case ArrayType::INT64:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<int64_t>((int64_t*)输入, 自定义删除器));
-		case ArrayType::UINT8:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<uint8_t>((uint8_t*)输入, 自定义删除器));
-		case ArrayType::UINT16:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<uint16_t>((uint16_t*)输入, 自定义删除器));
-		case ArrayType::UINT32:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<uint32_t>((uint32_t*)输入, 自定义删除器));
-		case ArrayType::UINT64:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<uint64_t>((uint64_t*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_DOUBLE:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<double>>((std::complex<double>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_SINGLE:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<float>>((std::complex<float>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_INT8:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<int8_t>>((std::complex<int8_t>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_INT16:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<int16_t>>((std::complex<int16_t>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_INT32:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<int32_t>>((std::complex<int32_t>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_INT64:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<int64_t>>((std::complex<int64_t>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_UINT8:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<uint8_t>>((std::complex<uint8_t>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_UINT16:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<uint16_t>>((std::complex<uint16_t>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_UINT32:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<uint32_t>>((std::complex<uint32_t>*)输入, 自定义删除器));
-		case ArrayType::COMPLEX_UINT64:
-			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<uint64_t>>((std::complex<uint64_t>*)输入, 自定义删除器));
-		default:
-			EnumThrow(MexTools::Unsupported_type);
-		}
-	}
 }
 using namespace Mex工具;
 using namespace matlab::mex;

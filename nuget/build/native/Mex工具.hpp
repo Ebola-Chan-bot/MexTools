@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <magic_enum.hpp>
-#include "Mex工具.前置.hpp"
+#include <mex.hpp>
 //Mex工具全局异常枚举
 enum class MexTools
 {
@@ -21,6 +21,63 @@ enum class MexTools
 	Unexpected_SEH_exception,
 	Unexpected_CPP_exception
 };
+namespace Mex工具
+{
+	//异常处理
+
+/*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将同时作为MException的identifier和message，因此只能使用英文、数字和下划线。
+MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
+用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
+和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
+*/
+	template<typename T>
+	[[noreturn]] void EnumThrow(T 异常)
+	{
+		std::ostringstream 异常信息流;
+		for (const char* 字符指针 = typeid(T).name(); const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
+			异常信息流 << 字符;
+		异常信息流 << ':' << magic_enum::enum_name(异常);
+		const std::string 异常信息 = 异常信息流.str();
+		throw matlab::engine::MATLABException(异常信息, std::u16string(异常信息.cbegin(), 异常信息.cend()));
+	}
+	/*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将作为MException的identifier，因此只能使用英文、数字和下划线。消息必须是UTF16字符串，可以包含任意字符。
+	MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
+	用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
+	和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
+	可选将标识符添加到消息。标识符会添加到消息开头。
+	*/
+	template<typename T>
+	[[noreturn]] void EnumThrow(T 标识符, const std::u16string& 消息, bool 将标识符添加到消息 = true)
+	{
+		std::ostringstream 标识符流;
+		for (const char* 字符指针 = typeid(T).name(); const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
+			标识符流 << 字符;
+		标识符流 << ':' << magic_enum::enum_name(标识符);
+		if (将标识符添加到消息)
+		{
+			std::u16string 合并消息;
+			const std::string 标识符文本 = 标识符流.str();
+			合并消息.resize_and_overwrite(标识符文本.size() + 消息.size() + 1, [&标识符文本, &消息](char16_t* 合并消息指针, size_t 尺寸)
+				{
+					char16_t* 指针 = std::copy(标识符文本.begin(), 标识符文本.end(), 合并消息指针);
+					*指针++ = u'：';
+					return std::copy(消息.begin(), 消息.end(), 指针) - 合并消息指针;
+				});
+			throw matlab::engine::MATLABException(标识符文本, 合并消息);
+		}
+		else
+			throw matlab::engine::MATLABException(标识符流.str(), 消息);
+	}
+	//检查GetLastError()，如果有错误则抛出MATLAB异常。如果没有错误则不执行任何操作。可选使用指定的 MException identifier
+	void CheckLastError(const std::string& identifier = "MexTools:Win32Exception");
+	//检查GetLastError()，如果有错误则抛出MATLAB异常。如果没有错误则不执行任何操作。可选使用枚举值作为 MException identifier，
+	template<typename T>
+	inline void CheckLastError(T identifier)
+	{
+		CheckLastError(magic_enum::enum_name(identifier));
+	}
+}
+#include "Mex工具.前置.hpp"
 namespace Mex工具
 {
 	//公开的命名空间不能 using namespace，会导致用户 using 本命名空间以后级联 using
@@ -64,74 +121,159 @@ namespace Mex工具
 	{
 		return 类型字节数(输入.getType()) * 输入.getNumberOfElements();
 	}
-	template<template<typename...> typename 模板, typename...其它参数>
+	/*根据动态类型选择类模板，返回其名为value的静态成员变量。
+	此函数根据输入的动态类型，将对应的静态类型作为输入类模板的参数。然后，返回模板实例化类型的 static value 成员变量。但是，该成员变量的类型必须对所有可能的动态类型保持相同，不允许类型转换。
+	输入类模板通常应当提供一个泛化实现，对不支持的动态类型采取默认行为（如报错等），除非你的类模板支持所有MATLAB类型（即本函数体中列出的所有case）。然后对支持的类型提供特化或偏特化实现。不需要考虑ArrayType枚举项未列出的情况：本函数会自动处理并报错。
+	例如，一种可能的计算动态类型的数组字节数的实现（尽管本库并非如此实现）：
+	```
+	template<typename T>struct 类型字节数{static constexpr size_t value = sizeof(T);};
+	template<typename T>struct 类型字节数<SparseArray<T>>{static constexpr size_t value = sizeof(T);};
+	inline size_t 数组字节数(const matlab::data::Array& 输入){return 动态类型选择模板<类型字节数>(输入.getType());}
+	```
+	*/
+	template<template<typename> typename 模板>
 	auto 动态类型选择模板(matlab::data::ArrayType 类型)
 	{
 		using namespace matlab::data;
 		switch (类型)
 		{
 		case ArrayType::LOGICAL:
-			return 模板<bool, 其它参数...>::value;
+			return 模板<bool>::value;
 		case ArrayType::CHAR:
-			return 模板<CHAR16_T, 其它参数...>::value;
+			return 模板<CHAR16_T>::value;
 		case ArrayType::MATLAB_STRING:
-			return 模板<MATLABString, 其它参数...>::value;
+			return 模板<MATLABString>::value;
 		case ArrayType::DOUBLE:
-			return 模板<double, 其它参数...>::value;
+			return 模板<double>::value;
 		case ArrayType::SINGLE:
-			return 模板<float, 其它参数...>::value;
+			return 模板<float>::value;
 		case ArrayType::INT8:
-			return 模板<int8_t, 其它参数...>::value;
+			return 模板<int8_t>::value;
 		case ArrayType::UINT8:
-			return 模板<uint8_t, 其它参数...>::value;
+			return 模板<uint8_t>::value;
 		case ArrayType::INT16:
-			return 模板<int16_t, 其它参数...>::value;
+			return 模板<int16_t>::value;
 		case ArrayType::UINT16:
-			return 模板<uint16_t, 其它参数...>::value;
+			return 模板<uint16_t>::value;
 		case ArrayType::INT32:
-			return 模板<int32_t, 其它参数...>::value;
+			return 模板<int32_t>::value;
 		case ArrayType::UINT32:
-			return 模板<uint32_t, 其它参数...>::value;
+			return 模板<uint32_t>::value;
 		case ArrayType::INT64:
-			return 模板<int64_t, 其它参数...>::value;
+			return 模板<int64_t>::value;
 		case ArrayType::UINT64:
-			return 模板<uint64_t, 其它参数...>::value;
+			return 模板<uint64_t>::value;
 		case ArrayType::COMPLEX_DOUBLE:
-			return 模板<std::complex<double>, 其它参数...>::value;
+			return 模板<std::complex<double>>::value;
 		case ArrayType::COMPLEX_SINGLE:
-			return 模板<std::complex<float>, 其它参数...>::value;
+			return 模板<std::complex<float>>::value;
 		case ArrayType::COMPLEX_INT8:
-			return 模板<std::complex<int8_t>, 其它参数...>::value;
+			return 模板<std::complex<int8_t>>::value;
 		case ArrayType::COMPLEX_UINT8:
-			return 模板<std::complex<uint8_t>, 其它参数...>::value;
+			return 模板<std::complex<uint8_t>>::value;
 		case ArrayType::COMPLEX_INT16:
-			return 模板<std::complex<int16_t>, 其它参数...>::value;
+			return 模板<std::complex<int16_t>>::value;
 		case ArrayType::COMPLEX_UINT16:
-			return 模板<std::complex<uint16_t>, 其它参数...>::value;
+			return 模板<std::complex<uint16_t>>::value;
 		case ArrayType::COMPLEX_INT32:
-			return 模板<std::complex<int32_t>, 其它参数...>::value;
+			return 模板<std::complex<int32_t>>::value;
 		case ArrayType::COMPLEX_UINT32:
-			return 模板<std::complex<uint32_t>, 其它参数...>::value;
+			return 模板<std::complex<uint32_t>>::value;
 		case ArrayType::COMPLEX_INT64:
-			return 模板<std::complex<int64_t>, 其它参数...>::value;
+			return 模板<std::complex<int64_t>>::value;
 		case ArrayType::COMPLEX_UINT64:
-			return 模板<std::complex<uint64_t>, 其它参数...>::value;
+			return 模板<std::complex<uint64_t>>::value;
 		case ArrayType::CELL:
-			return 模板<Array, 其它参数...>::value;
+			return 模板<Array>::value;
 		case ArrayType::STRUCT:
-			return 模板<Struct, 其它参数...>::value;
+			return 模板<Struct>::value;
 		case ArrayType::OBJECT:
 		case ArrayType::VALUE_OBJECT:
 		case ArrayType::HANDLE_OBJECT_REF:
-			return 模板<Object, 其它参数...>::value;
+			return 模板<Object>::value;
 		case ArrayType::ENUM:
-			return 模板<EnumArray, 其它参数...>::value;
+			return 模板<EnumArray>::value;
 		case ArrayType::SPARSE_LOGICAL:
-			return 模板<SparseArray<bool>, 其它参数...>::value;
+			return 模板<SparseArray<bool>>::value;
 		case ArrayType::SPARSE_DOUBLE:
-			return 模板<SparseArray<double>, 其它参数...>::value;
+			return 模板<SparseArray<double>>::value;
 		case ArrayType::SPARSE_COMPLEX_DOUBLE:
-			return 模板<SparseArray<std::complex<double>>, 其它参数...>::value;
+			return 模板<SparseArray<std::complex<double>>>::value;
+		default:
+			EnumThrow(MexTools::Unsupported_type);
+		}
+	}
+	/*根据动态类型选择类模板，返回其名为value的静态成员函数。
+	此函数根据输入的动态类型，将对应的静态类型作为输入类模板的参数。然后，返回模板实例化类型的 static value 成员函数。但是，该函数的签名必须对所有可能的动态类型保持相同。然后，将输入给本函数的后续参数完美转发给那个函数。
+	*/
+	template<template<typename> typename 模板,typename...T>
+	auto 动态类型选择模板(matlab::data::ArrayType 类型,T&&...函数参数)
+	{
+		using namespace matlab::data;
+		switch (类型)
+		{
+		case ArrayType::LOGICAL:
+			return 模板<bool>::value(std::forward<T>(函数参数)...);
+		case ArrayType::CHAR:
+			return 模板<CHAR16_T>::value(std::forward<T>(函数参数)...);
+		case ArrayType::MATLAB_STRING:
+			return 模板<MATLABString>::value(std::forward<T>(函数参数)...);
+		case ArrayType::DOUBLE:
+			return 模板<double>::value(std::forward<T>(函数参数)...);
+		case ArrayType::SINGLE:
+			return 模板<float>::value(std::forward<T>(函数参数)...);
+		case ArrayType::INT8:
+			return 模板<int8_t>::value(std::forward<T>(函数参数)...);
+		case ArrayType::UINT8:
+			return 模板<uint8_t>::value(std::forward<T>(函数参数)...);
+		case ArrayType::INT16:
+			return 模板<int16_t>::value(std::forward<T>(函数参数)...);
+		case ArrayType::UINT16:
+			return 模板<uint16_t>::value(std::forward<T>(函数参数)...);
+		case ArrayType::INT32:
+			return 模板<int32_t>::value(std::forward<T>(函数参数)...);
+		case ArrayType::UINT32:
+			return 模板<uint32_t>::value(std::forward<T>(函数参数)...);
+		case ArrayType::INT64:
+			return 模板<int64_t>::value(std::forward<T>(函数参数)...);
+		case ArrayType::UINT64:
+			return 模板<uint64_t>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_DOUBLE:
+			return 模板<std::complex<double>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_SINGLE:
+			return 模板<std::complex<float>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_INT8:
+			return 模板<std::complex<int8_t>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_UINT8:
+			return 模板<std::complex<uint8_t>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_INT16:
+			return 模板<std::complex<int16_t>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_UINT16:
+			return 模板<std::complex<uint16_t>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_INT32:
+			return 模板<std::complex<int32_t>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_UINT32:
+			return 模板<std::complex<uint32_t>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_INT64:
+			return 模板<std::complex<int64_t>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::COMPLEX_UINT64:
+			return 模板<std::complex<uint64_t>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::CELL:
+			return 模板<Array>::value(std::forward<T>(函数参数)...);
+		case ArrayType::STRUCT:
+			return 模板<Struct>::value(std::forward<T>(函数参数)...);
+		case ArrayType::OBJECT:
+		case ArrayType::VALUE_OBJECT:
+		case ArrayType::HANDLE_OBJECT_REF:
+			return 模板<Object>::value(std::forward<T>(函数参数)...);
+		case ArrayType::ENUM:
+			return 模板<EnumArray>::value(std::forward<T>(函数参数)...);
+		case ArrayType::SPARSE_LOGICAL:
+			return 模板<SparseArray<bool>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::SPARSE_DOUBLE:
+			return 模板<SparseArray<double>>::value(std::forward<T>(函数参数)...);
+		case ArrayType::SPARSE_COMPLEX_DOUBLE:
+			return 模板<SparseArray<std::complex<double>>>::value(std::forward<T>(函数参数)...);
 		default:
 			EnumThrow(MexTools::Unsupported_type);
 		}
@@ -198,20 +340,20 @@ namespace Mex工具
 	template<typename 输出类型, typename 迭代器>
 	inline 输出类型 万能转码(迭代器& 输入, matlab::data::ArrayDimensions&& 各维尺寸)
 	{
-		return 内部::迭代CM<输出类型>::转换(输入, std::move(各维尺寸));
+		return 内部::迭代CM<数组类型转元素<输出类型>>::value(输入, std::move(各维尺寸));
 	}
 	//从迭代器创建具有迭代器值类型的MATLAB数组。输入matlab::data::ArrayDimensions右值引用，这意味着转换后输入对象可能不再可用。函数执行后，迭代器将指向最后一个元素的下一个位置。
 	template<typename 迭代器>
-	matlab::data::TypedArray<内部::取迭代器值类型<迭代器>>万能转码(迭代器&输入, matlab::data::ArrayDimensions&& 各维尺寸)
+	inline matlab::data::TypedArray<内部::取迭代器值类型<迭代器>>万能转码(迭代器&输入, matlab::data::ArrayDimensions&& 各维尺寸)
 	{
-		return 内部::迭代CM<matlab::data::TypedArray<内部::取迭代器值类型<迭代器>>>::转换(输入, std::move(各维尺寸));
+		return 内部::迭代CM<内部::取迭代器值类型<迭代器>>::value(输入, std::move(各维尺寸));
 	}
 	//从指针迭代器（指迭代器解引用得到指针，迭代器本身不一定是指针）创建具有uint64类型的MATLAB数组。输入matlab::data::ArrayDimensions右值引用，这意味着转换后输入对象可能不再可用。函数执行后，迭代器将指向最后一个元素的下一个位置。
 	template<typename 迭代器>
 	requires std::is_pointer_v<内部::取迭代器值类型<迭代器>>
-	matlab::data::TypedArray<size_t>万能转码(迭代器& 输入, matlab::data::ArrayDimensions&& 各维尺寸)
+	inline matlab::data::TypedArray<size_t>万能转码(迭代器& 输入, matlab::data::ArrayDimensions&& 各维尺寸)
 	{
-		return 内部::迭代CM<matlab::data::TypedArray<size_t>>::转换(输入, std::move(各维尺寸));
+		return 内部::迭代CM<size_t>::value(输入, std::move(各维尺寸));
 	}
 	/*从迭代器创建具有动态类型的MATLAB数组。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
 	特别地，如果输出类型是ArrayType::MATLAB_STRING，迭代器对应的值类型可以是所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型；如果不支持，还可以是任何能被MATLAB转换为string的MATLAB元素对象（如枚举、分类数组或任何实现了string方法的对象等）
@@ -220,79 +362,9 @@ namespace Mex工具
 	函数执行后，迭代器将指向最后一个元素的下一个位置。
 	*/
 	template<typename 迭代器>
-	matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, 迭代器& 输入, matlab::data::ArrayDimensions&& 各维尺寸)
+	inline matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, 迭代器& 输入, matlab::data::ArrayDimensions&& 各维尺寸)
 	{
-		using namespace matlab::data;
-		using namespace 内部;
-		switch (元素类型)
-		{
-		case ArrayType::LOGICAL:
-			return 迭代CM<TypedArray<bool>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::CHAR:
-			return 迭代CM<CharArray>::转换(输入, std::move(各维尺寸));
-		case ArrayType::MATLAB_STRING:
-			return 迭代CM<StringArray>::转换(输入, std::move(各维尺寸));
-		case ArrayType::DOUBLE:
-			return 迭代CM<TypedArray<double>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::SINGLE:
-			return 迭代CM<TypedArray<float>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::INT8:
-			return 迭代CM<TypedArray<int8_t>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::UINT8:
-			return 迭代CM<TypedArray<uint8_t>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::INT16:
-			return 迭代CM<TypedArray<int16_t>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::UINT16:
-			return 迭代CM<TypedArray<uint16_t>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::INT32:
-			return 迭代CM<TypedArray<int32_t>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::UINT32:
-			return 迭代CM<TypedArray<uint32_t>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::INT64:
-			return 迭代CM<TypedArray<int64_t>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::UINT64:
-			return 迭代CM<TypedArray<uint64_t>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_DOUBLE:
-			return 迭代CM<TypedArray<std::complex<double>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_SINGLE:
-			return 迭代CM<TypedArray<std::complex<float>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_INT8:
-			return 迭代CM<TypedArray<std::complex<int8_t>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_UINT8:
-			return 迭代CM<TypedArray<std::complex<uint8_t>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_INT16:
-			return 迭代CM<TypedArray<std::complex<int16_t>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_UINT16:
-			return 迭代CM<TypedArray<std::complex<uint16_t>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_INT32:
-			return 迭代CM<TypedArray<std::complex<int32_t>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_UINT32:
-			return 迭代CM<TypedArray<std::complex<uint32_t>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_INT64:
-			return 迭代CM<TypedArray<std::complex<int64_t>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::COMPLEX_UINT64:
-			return 迭代CM<TypedArray<std::complex<uint64_t>>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::CELL:
-			return 迭代CM<CellArray>::转换(输入, std::move(各维尺寸));
-		case ArrayType::STRUCT:
-			return 迭代CM<StructArray>::转换(输入, std::move(各维尺寸));
-		case ArrayType::OBJECT:
-			return 迭代CM<ObjectArray>::转换(输入, std::move(各维尺寸));
-		case ArrayType::VALUE_OBJECT:
-			return 迭代CM<ObjectArray>::转换(输入, std::move(各维尺寸));
-		case ArrayType::HANDLE_OBJECT_REF:
-			return 迭代CM<ObjectArray>::转换(输入, std::move(各维尺寸));
-		case ArrayType::ENUM:
-			return 迭代CM<EnumArray>::转换(输入, std::move(各维尺寸));
-		case ArrayType::SPARSE_LOGICAL:
-			return 迭代CM<SparseArray<bool>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::SPARSE_DOUBLE:
-			return 迭代CM<SparseArray<double>>::转换(输入, std::move(各维尺寸));
-		case ArrayType::SPARSE_COMPLEX_DOUBLE:
-			return 迭代CM<SparseArray<std::complex<double>>>::转换(输入, std::move(各维尺寸));
-		default:
-			EnumThrow(MexTools::Unsupported_type);
-		}
+		return 动态类型选择模板<内部::动态CM>(元素类型, 输入, std::move(各维尺寸));
 	}
 	//将给定指针直接作为指定MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
 	template<typename 输出类型>
@@ -301,7 +373,10 @@ namespace Mex工具
 		return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), matlab::data::buffer_ptr_t<数组类型转元素<输出类型>>(输入, 自定义删除器));
 	}
 	//将给定指针直接作为动态类型MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
-	matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, void* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t 自定义删除器);
+	inline matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, void* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t 自定义删除器)
+	{
+		return 动态类型选择模板<内部::指针转动态数组>(元素类型, std::move(各维尺寸), 输入, 自定义删除器);
+	}
 
 	//自动析构
 
@@ -318,69 +393,13 @@ namespace Mex工具
 	//检查对象指针是否存在于自动析构表中。如不存在，此指针可能是无效的，或者创建时未加入自动析构表。
 	bool 对象存在(void* 对象指针)noexcept;
 
-	//异常处理
-
-	/*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将同时作为MException的identifier和message，因此只能使用英文、数字和下划线。
-	MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
-	用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
-	和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
-	*/
-	template<typename T>
-	[[noreturn]] void EnumThrow(T 异常)
-	{
-		std::ostringstream 异常信息流;
-		for (const char* 字符指针 = typeid(T).name(); const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
-			异常信息流 << 字符;
-		异常信息流 << ':' << magic_enum::enum_name(异常);
-		const std::string 异常信息 = 异常信息流.str();
-		throw matlab::engine::MATLABException(异常信息, 万能转码<matlab::data::String>(异常信息));
-	}
-	/*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将作为MException的identifier，因此只能使用英文、数字和下划线。消息必须是UTF16字符串，可以包含任意字符。
-	MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
-	用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
-	和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
-	可选将标识符添加到消息。标识符会添加到消息开头。
-	*/
-	template<typename T>
-	[[noreturn]] void EnumThrow(T 标识符, const std::u16string& 消息, bool 将标识符添加到消息 = true)
-	{
-		std::ostringstream 标识符流;
-		for (const char* 字符指针 = typeid(T).name(); const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
-			标识符流 << 字符;
-		标识符流 << ':' << magic_enum::enum_name(标识符);
-		if (将标识符添加到消息)
-		{
-			std::u16string 合并消息;
-			const std::string 标识符文本 = 标识符流.str();
-			合并消息.resize_and_overwrite(标识符文本.size() + 消息.size() + 1, [&标识符文本, &消息](char16_t* 合并消息指针, size_t 尺寸)
-				{
-					char16_t* 指针 = std::copy(标识符文本.begin(), 标识符文本.end(), 合并消息指针);
-					*指针++ = u'：';
-					return std::copy(消息.begin(), 消息.end(), 指针) - 合并消息指针;
-				});
-			throw matlab::engine::MATLABException(标识符文本, 合并消息);
-		}
-		else
-			throw matlab::engine::MATLABException(标识符流.str(), 消息);
-	}
-	//检查GetLastError()，如果有错误则抛出MATLAB异常。如果没有错误则不执行任何操作。可选使用指定的 MException identifier
-	void CheckLastError(const std::string& identifier = "MexTools:Win32Exception");
-	//检查GetLastError()，如果有错误则抛出MATLAB异常。如果没有错误则不执行任何操作。可选使用枚举值作为 MException identifier，
-	template<typename T>
-	inline void CheckLastError(T identifier)
-	{
-		CheckLastError(magic_enum::enum_name(identifier));
-	}
-
-	//动态类型缓冲，可用于创建动态类型MATLAB数组。使用
+	//动态类型缓冲，可用于创建动态类型MATLAB数组。使用`从元素`以根据元素数创建缓冲，使用`从字节`以根据字节数创建缓冲。创建后，向指针写入数据，然后调用`创建数组`以创建MATLAB数组。创建数组后，缓冲将被释放，不再可用。
 	struct buffer_ptr_t
 	{
-		void* const 指针;
+		void* get()const noexcept;
 		static buffer_ptr_t 从元素(matlab::data::ArrayType 类型, size_t 元素数);
 		static buffer_ptr_t 从字节(matlab::data::ArrayType 类型, size_t 字节数);
 		matlab::data::Array 创建数组(matlab::data::ArrayDimensions&& 各维尺寸);
-	protected:
-		buffer_ptr_t(void* 指针)noexcept : 指针(指针) {}
 	};
 }
 #include"Mex工具.后置.hpp"

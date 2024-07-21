@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <mex.hpp>
 struct MexFunction :matlab::mex::Function
 {
 	MexFunction();
@@ -10,6 +9,8 @@ namespace Mex工具
 {
 	extern matlab::data::ArrayFactory 数组工厂;
 	extern std::shared_ptr<matlab::engine::MATLABEngine> MATLAB引擎;
+	template<typename T>
+	[[noreturn]] void EnumThrow(T 异常);
 	namespace 内部 {
 		using namespace matlab::data;
 		int WCTMB(const wchar_t* 宽字符串, int 宽字符数, char* 字节缓冲, int 缓冲长度);
@@ -514,13 +515,11 @@ namespace Mex工具
 				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
 			}
 		};
-		template<typename 输出类型>
-		struct 迭代CM;
 		template<typename T>
-		struct 迭代CM<TypedArray<T>>
+		struct 迭代CM
 		{
 			template<typename 迭代器>
-			static TypedArray<T>转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+			static TypedArray<T>value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
 			{
 				TypedArray<T> 输出 = 数组工厂.createArray<T>(std::move(各维尺寸));
 				const 迭代器 输入尾 = 输入 + 输出.getNumberOfElements();
@@ -530,7 +529,7 @@ namespace Mex工具
 			}
 			template<typename 迭代器>
 				requires std::convertible_to<取迭代器值类型<迭代器>, T>
-			static TypedArray<T>转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+			static TypedArray<T>value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
 			{
 				TypedArray<T> 输出 = 数组工厂.createArray<T>(std::move(各维尺寸));
 				const 迭代器 输入尾 = 输入 + 输出.getNumberOfElements();
@@ -538,16 +537,16 @@ namespace Mex工具
 				输入 = 输入尾;
 				return 输出;
 			}
-			static TypedArray<T>转换(void*& 输入, ArrayDimensions&& 各维尺寸)
+			static TypedArray<T>value(void*& 输入, ArrayDimensions&& 各维尺寸)
 			{
-				return 转换((T*&)输入, std::move(各维尺寸));
+				return value((T*&)输入, std::move(各维尺寸));
 			}
 		};
 		template<>
-		struct 迭代CM<StringArray>
+		struct 迭代CM<MATLABString>
 		{
 			template<迭代器值类型是<String, MATLABString>迭代器>
-			static StringArray 转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+			static StringArray value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
 			{
 				StringArray 输出 = 数组工厂.createArray<MATLABString>(std::move(各维尺寸));
 				const 迭代器 输入尾 = 输入 + 输出.getNumberOfElements();
@@ -556,7 +555,7 @@ namespace Mex工具
 				return 输出;
 			}
 			template<typename 迭代器>
-			static StringArray 转换(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+			static StringArray value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
 			{
 				StringArray 输出 = 数组工厂.createArray<MATLABString>(std::move(各维尺寸));
 				const 迭代器 输入尾 = 输入 + 输出.getNumberOfElements();
@@ -564,9 +563,45 @@ namespace Mex工具
 				输入 = 输入尾;
 				return 输出;
 			}
-			static StringArray 转换(void*& 输入, ArrayDimensions&& 各维尺寸)
+			static StringArray value(void*& 输入, ArrayDimensions&& 各维尺寸)
 			{
-				return 转换((MATLABString*&)输入, std::move(各维尺寸));
+				return value((MATLABString*&)输入, std::move(各维尺寸));
+			}
+		};
+		template<typename T>
+		struct 动态CM
+		{
+			template<typename 迭代器>
+			[[noreturn]] Array value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+			{
+				EnumThrow(MexTools::Unsupported_type);
+			}
+		};
+		template<typename T>
+			requires requires {数组工厂.createArray<T>({ 1 }); }
+		struct 动态CM
+		{
+			template<typename 迭代器>
+			Array value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+			{
+				return 迭代CM<T>::value(输入, std::move(各维尺寸));
+			}
+		};
+		template<typename T>
+		struct 指针转动态数组
+		{
+			[[noreturn]]Array value(ArrayDimension&& 各维尺寸, void* 指针, buffer_deleter_t 自定义删除器)
+			{
+				EnumThrow(MexTools::Unsupported_type);
+			}
+		};
+		template<typename T>
+			requires requires{std::declval<buffer_ptr_t<T>>(); }
+		struct 指针转动态数组
+		{
+			Array value(ArrayDimension&& 各维尺寸, void* 指针, buffer_deleter_t 自定义删除器)
+			{
+				return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<T>((T*)指针, 自定义删除器));
 			}
 		};
 	}
