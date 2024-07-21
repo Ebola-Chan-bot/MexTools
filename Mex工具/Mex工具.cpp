@@ -7,6 +7,7 @@ import std;
 using namespace matlab::data;
 namespace Mex工具
 {
+	using namespace 内部;
 	ArrayFactory 数组工厂;
 	std::shared_ptr<matlab::engine::MATLABEngine> MATLAB引擎;
 	std::map<void*, std::move_only_function<void(void*)const>>自动析构表;
@@ -168,9 +169,9 @@ namespace Mex工具
 	{
 		CharArray 标量转换<CharArray>::转换(const char* 输入, size_t 长度)
 		{
-			buffer_ptr_t<char16_t> 缓冲 = Mex工具::数组工厂.createBuffer<char16_t>(长度 + 1);
+			buffer_ptr_t<char16_t> 缓冲 = 数组工厂.createBuffer<char16_t>(长度 + 1);
 			长度 = MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)缓冲.get(), 长度 + 1) - 1;
-			return Mex工具::数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
+			return 数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
 		}
 		String 标量转换<String>::转换(const char* 输入, size_t 长度)
 		{
@@ -186,6 +187,69 @@ namespace Mex工具
 			return WideCharToMultiByte(CP_UTF8, 0, 宽字符串, 宽字符数, 字节缓冲, 缓冲长度, nullptr, nullptr) - 1;
 		}
 	}
+	void CheckLastError(const std::string& identifier)
+	{
+		if (const DWORD 错误码 = GetLastError())
+		{
+			LPWSTR 错误信息;
+			FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, 错误码, MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
+			const matlab::engine::MATLABException 异常(identifier, (char16_t*)错误信息);
+			LocalFree(错误信息);
+			throw 异常;
+		}
+	}
+	Array 万能转码(ArrayType 元素类型, void* 输入, ArrayDimensions&& 各维尺寸, buffer_deleter_t 自定义删除器)
+	{
+		switch (元素类型)
+		{
+		case ArrayType::LOGICAL:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<bool>((bool*)输入, 自定义删除器));
+		case ArrayType::CHAR:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<char16_t>((char16_t*)输入, 自定义删除器));
+		case ArrayType::DOUBLE:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<double>((double*)输入, 自定义删除器));
+		case ArrayType::SINGLE:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<float>((float*)输入, 自定义删除器));
+		case ArrayType::INT8:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<int8_t>((int8_t*)输入, 自定义删除器));
+		case ArrayType::INT16:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<int16_t>((int16_t*)输入, 自定义删除器));
+		case ArrayType::INT32:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<int32_t>((int32_t*)输入, 自定义删除器));
+		case ArrayType::INT64:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<int64_t>((int64_t*)输入, 自定义删除器));
+		case ArrayType::UINT8:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<uint8_t>((uint8_t*)输入, 自定义删除器));
+		case ArrayType::UINT16:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<uint16_t>((uint16_t*)输入, 自定义删除器));
+		case ArrayType::UINT32:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<uint32_t>((uint32_t*)输入, 自定义删除器));
+		case ArrayType::UINT64:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<uint64_t>((uint64_t*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_DOUBLE:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<double>>((std::complex<double>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_SINGLE:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<float>>((std::complex<float>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_INT8:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<int8_t>>((std::complex<int8_t>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_INT16:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<int16_t>>((std::complex<int16_t>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_INT32:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<int32_t>>((std::complex<int32_t>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_INT64:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<int64_t>>((std::complex<int64_t>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_UINT8:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<uint8_t>>((std::complex<uint8_t>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_UINT16:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<uint16_t>>((std::complex<uint16_t>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_UINT32:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<uint32_t>>((std::complex<uint32_t>*)输入, 自定义删除器));
+		case ArrayType::COMPLEX_UINT64:
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<std::complex<uint64_t>>((std::complex<uint64_t>*)输入, 自定义删除器));
+		default:
+			EnumThrow(MexTools::Unsupported_type);
+		}
+	}
 }
 using namespace Mex工具;
 using namespace matlab::mex;
@@ -197,7 +261,7 @@ static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		EnumThrow(Mex异常::Unexpected_SEH_exception);
+		EnumThrow(MexTools::Unexpected_SEH_exception);
 	}
 }
 MexFunction::MexFunction()
@@ -219,8 +283,9 @@ void MexFunction::operator()(ArgumentList outputs, ArgumentList inputs)
 	catch (...)
 	{
 		//无法识别的异常，转换为统一的信息
-		EnumThrow(Mex异常::Unexpected_CPP_exception);
+		EnumThrow(MexTools::Unexpected_CPP_exception);
 	}
+	数组工厂.createArray<Struct>({ 1 });
 }
 MexFunction::~MexFunction()
 {

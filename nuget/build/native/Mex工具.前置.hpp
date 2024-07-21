@@ -8,10 +8,10 @@ struct MexFunction :matlab::mex::Function
 };
 namespace Mex工具
 {
-	using namespace matlab::data;
-	extern ArrayFactory 数组工厂;
+	extern matlab::data::ArrayFactory 数组工厂;
 	extern std::shared_ptr<matlab::engine::MATLABEngine> MATLAB引擎;
 	namespace 内部 {
+		using namespace matlab::data;
 		int WCTMB(const wchar_t* 宽字符串, int 宽字符数, char* 字节缓冲, int 缓冲长度);
 		template<typename T, typename 目标>
 		concept 可以显式转换到 = requires(目标 & 输出, T && 输入) { 输出 = (目标)std::move(输入); };
@@ -108,13 +108,13 @@ namespace Mex工具
 		template<>struct 动态类型转静态_s<ArrayType::SPARSE_LOGICAL> { using type = bool; };
 		template<>struct 动态类型转静态_s<ArrayType::SPARSE_DOUBLE> { using type = double; };
 		template<>struct 动态类型转静态_s<ArrayType::SPARSE_COMPLEX_DOUBLE> { using type = std::complex<double>; };
-		template<typename T>constexpr uint8_t 类型字节数_v = sizeof(T);
-		template<>constexpr uint8_t 类型字节数_v<void> = 0;
+		template<typename T>constexpr size_t 类型字节数_v = sizeof(T);
+		template<>constexpr size_t 类型字节数_v<void> = 0;
 		template<typename T>struct 类型字节数_s;
 		template<std::underlying_type_t<ArrayType>...T>
 		struct 类型字节数_s<std::integer_sequence<std::underlying_type_t<ArrayType>, T...>>
 		{
-			static constexpr uint8_t value[] = { 类型字节数_v<typename 动态类型转静态_s<(ArrayType)T>::type>... };
+			static constexpr size_t value[] = { 类型字节数_v<typename 动态类型转静态_s<(ArrayType)T>::type>... };
 		};
 
 		//万能转码实现
@@ -330,7 +330,7 @@ namespace Mex工具
 				operator()((TypedArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
 			}
 			template<std::convertible_to<值类型> T>
-			void operator()(const SparseArray<T>& 输入)
+			void operator()(const matlab::data::SparseArray<T>& 输入)
 			{
 				const TypedIterator<const T>迭代尾 = 输入.cend();
 				const size_t 高度 = 输入.getDimensions().front();
@@ -343,7 +343,7 @@ namespace Mex工具
 				输出 += 输入.getNumberOfElements();
 			}
 			template<必须显式转换到<值类型>T>
-			void operator()(const SparseArray<T>& 输入)
+			void operator()(const matlab::data::SparseArray<T>& 输入)
 			{
 				const TypedIterator<const T>迭代尾 = 输入.cend();
 				const size_t 高度 = 输入.getDimensions().front();
@@ -356,9 +356,9 @@ namespace Mex工具
 				输出 += 输入.getNumberOfElements();
 			}
 			template<必须MATLAB元素转换到<值类型>T>
-			void operator()(SparseArray<T>&& 输入)
+			void operator()(matlab::data::SparseArray<T>&& 输入)
 			{
-				operator()((SparseArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
+				operator()((matlab::data::SparseArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
 			}
 		};
 		template<>
