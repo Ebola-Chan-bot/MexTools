@@ -169,7 +169,7 @@ namespace Mex工具
 	{
 		CharArray 标量转换<CharArray>::转换(const char* 输入, size_t 长度)
 		{
-			buffer_ptr_t<char16_t> 缓冲 = 数组工厂.createBuffer<char16_t>(长度 + 1);
+			matlab::data::buffer_ptr_t<char16_t> 缓冲 = 数组工厂.createBuffer<char16_t>(长度 + 1);
 			长度 = MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)缓冲.get(), 长度 + 1) - 1;
 			return 数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
 		}
@@ -197,6 +197,36 @@ namespace Mex工具
 			LocalFree(错误信息);
 			throw 异常;
 		}
+	}
+	template<typename T>
+	struct 动态类型缓冲模板
+	{
+		[[noreturn]] static 动态类型缓冲* value(size_t 元素数)
+		{
+			EnumThrow(MexTools::Unsupported_type);
+		}
+	};
+	template<typename T>
+		requires requires{ 动态类型缓冲模板<T>{ 数组工厂.createBuffer<T>(1) }; }
+	struct 动态类型缓冲模板<T> :动态类型缓冲
+	{
+		buffer_ptr_t<T>静态类型缓冲;
+		void* get()const noexcept override
+		{
+			return 静态类型缓冲.get();
+		}
+		static 动态类型缓冲* value(size_t 元素数)
+		{
+			return new 动态类型缓冲模板{ 数组工厂.createBuffer<T>(元素数) };
+		}
+		Array 创建数组(ArrayDimensions&& 各维尺寸)noexcept override
+		{
+			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), std::move(静态类型缓冲));
+		}
+	};
+	std::unique_ptr<动态类型缓冲>动态类型缓冲::创建(matlab::data::ArrayType 类型, size_t 元素数)
+	{
+		return std::unique_ptr<动态类型缓冲>(动态类型选择模板<动态类型缓冲模板>(类型, 元素数));
 	}
 }
 using namespace Mex工具;
@@ -241,3 +271,4 @@ MexFunction::~MexFunction()
 	for (const auto& a : 自动析构表)
 		a.second(a.first);
 }
+constexpr void* volatile 导出函数[] = { mexCreateMexFunction,mexDestroyMexFunction,mexFunctionAdapter };

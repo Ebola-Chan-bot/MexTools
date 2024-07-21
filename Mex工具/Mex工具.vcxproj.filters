@@ -15,17 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Mex工具.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\nuget\build\native\Mex工具.hpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\nuget\build\native\Mex工具.前置.hpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="cpp.hint" />
     <None Include="..\nuget\build\native\MATLAB.MexTools.targets" />
     <None Include="..\nuget\MATLAB.MexTools.nuspec" />
@@ -35,7 +24,18 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Mex工具.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\nuget\build\native\Mex工具.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="..\nuget\build\native\Mex工具.后置.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nuget\build\native\Mex工具.前置.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

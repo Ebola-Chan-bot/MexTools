@@ -176,7 +176,7 @@ namespace Mex工具
 			static CharArray 转换(const char* 输入, size_t 长度);
 			static CharArray 转换(const char16_t* 输入, size_t 长度)
 			{
-				buffer_ptr_t<char16_t>缓冲 = 数组工厂.createBuffer<char16_t>(长度);
+				matlab::data::buffer_ptr_t<char16_t>缓冲 = 数组工厂.createBuffer<char16_t>(长度);
 				std::copy_n(输入, 长度, 缓冲.get());
 				return 数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
 			}
@@ -572,17 +572,17 @@ namespace Mex工具
 		struct 动态CM
 		{
 			template<typename 迭代器>
-			[[noreturn]] Array value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+			[[noreturn]] static Array value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
 			{
 				EnumThrow(MexTools::Unsupported_type);
 			}
 		};
 		template<typename T>
 			requires requires {数组工厂.createArray<T>({ 1 }); }
-		struct 动态CM
+		struct 动态CM<T>
 		{
 			template<typename 迭代器>
-			Array value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
+			static Array value(迭代器& 输入, ArrayDimensions&& 各维尺寸)
 			{
 				return 迭代CM<T>::value(输入, std::move(各维尺寸));
 			}
@@ -590,16 +590,16 @@ namespace Mex工具
 		template<typename T>
 		struct 指针转动态数组
 		{
-			[[noreturn]]Array value(ArrayDimension&& 各维尺寸, void* 指针, buffer_deleter_t 自定义删除器)
+			[[noreturn]]static Array value(ArrayDimensions&& 各维尺寸, void* 指针, buffer_deleter_t 自定义删除器)
 			{
 				EnumThrow(MexTools::Unsupported_type);
 			}
 		};
 		template<typename T>
-			requires requires{std::declval<buffer_ptr_t<T>>(); }
-		struct 指针转动态数组
+			requires requires{std::declval<matlab::data::buffer_ptr_t<T>>(); }
+		struct 指针转动态数组<T>
 		{
-			Array value(ArrayDimension&& 各维尺寸, void* 指针, buffer_deleter_t 自定义删除器)
+			static Array value(ArrayDimensions&& 各维尺寸, void* 指针, buffer_deleter_t 自定义删除器)
 			{
 				return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<T>((T*)指针, 自定义删除器));
 			}

@@ -267,7 +267,7 @@ namespace Mex工具
 		case ArrayType::HANDLE_OBJECT_REF:
 			return 模板<Object>::value(std::forward<T>(函数参数)...);
 		case ArrayType::ENUM:
-			return 模板<EnumArray>::value(std::forward<T>(函数参数)...);
+			return 模板<Enumeration>::value(std::forward<T>(函数参数)...);
 		case ArrayType::SPARSE_LOGICAL:
 			return 模板<SparseArray<bool>>::value(std::forward<T>(函数参数)...);
 		case ArrayType::SPARSE_DOUBLE:
@@ -394,12 +394,12 @@ namespace Mex工具
 	bool 对象存在(void* 对象指针)noexcept;
 
 	//动态类型缓冲，可用于创建动态类型MATLAB数组。使用`从元素`以根据元素数创建缓冲，使用`从字节`以根据字节数创建缓冲。创建后，向指针写入数据，然后调用`创建数组`以创建MATLAB数组。创建数组后，缓冲将被释放，不再可用。
-	struct buffer_ptr_t
+	struct 动态类型缓冲
 	{
-		void* get()const noexcept;
-		static buffer_ptr_t 从元素(matlab::data::ArrayType 类型, size_t 元素数);
-		static buffer_ptr_t 从字节(matlab::data::ArrayType 类型, size_t 字节数);
-		matlab::data::Array 创建数组(matlab::data::ArrayDimensions&& 各维尺寸);
+		static std::unique_ptr<动态类型缓冲> 创建(matlab::data::ArrayType 类型, size_t 元素数);
+		virtual void* get()const noexcept = 0;
+		virtual matlab::data::Array 创建数组(matlab::data::ArrayDimensions&& 各维尺寸)noexcept = 0;
+		virtual ~动态类型缓冲() {}
 	};
 }
 #include"Mex工具.后置.hpp"

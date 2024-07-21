@@ -139,7 +139,6 @@
       <ExceptionHandling>Async</ExceptionHandling>
       <BuildStlModules>true</BuildStlModules>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -170,7 +169,6 @@
       <ExceptionHandling>Async</ExceptionHandling>
       <BuildStlModules>true</BuildStlModules>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -185,11 +183,6 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\nuget\build\native\Mex工具.hpp" />
-    <ClCompile Include="..\nuget\build\native\Mex工具.前置.hpp" />
-    <ClCompile Include="Mex工具.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\.gitignore" />
     <None Include="..\nuget\build\native\MATLAB.MexTools.targets" />
     <None Include="..\nuget\MATLAB.MexTools.nuspec" />
@@ -199,6 +192,11 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Mex工具.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\nuget\build\native\Mex工具.hpp" />
+    <ClInclude Include="..\nuget\build\native\Mex工具.前置.hpp" />
     <ClInclude Include="..\nuget\build\native\Mex工具.后置.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
