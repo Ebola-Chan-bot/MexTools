@@ -46,14 +46,14 @@ MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型
 	和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
 	可选将标识符添加到消息。标识符会添加到消息开头。
 	*/
-	template<typename T>
-	[[noreturn]] void EnumThrow(T 标识符, const std::u16string& 消息, bool 将标识符添加到消息 = true)
+	template<bool 将标识符添加到消息 = true,typename T>
+	[[noreturn]] void EnumThrow(T 标识符, const std::u16string& 消息)
 	{
 		std::ostringstream 标识符流;
 		for (const char* 字符指针 = typeid(T).name(); const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
 			标识符流 << 字符;
 		标识符流 << ':' << magic_enum::enum_name(标识符);
-		if (将标识符添加到消息)
+		if constexpr (将标识符添加到消息)
 		{
 			std::u16string 合并消息;
 			const std::string 标识符文本 = 标识符流.str();
@@ -67,6 +67,28 @@ MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型
 		}
 		else
 			throw matlab::engine::MATLABException(标识符流.str(), 消息);
+	}
+	/*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将作为MException的identifier，因此只能使用英文、数字和下划线。消息必须是C样式0结尾UTF8字符指针，可以包含任意字符。
+	MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
+	用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
+	和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
+	可选将标识符添加到消息。标识符会添加到消息开头。
+	*/
+	template<bool 将标识符添加到消息 = true, typename T>
+	[[noreturn]] void EnumThrow(T 标识符, const char* 消息)
+	{
+		std::ostringstream 标识符流;
+		for (const char* 字符指针 = typeid(T).name(); const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
+			标识符流 << 字符;
+		标识符流 << ':' << magic_enum::enum_name(标识符);
+		if constexpr (将标识符添加到消息)
+		{
+			const std::string 标识符文本 = 标识符流.str();
+			标识符流 << "：" << 消息;
+			throw matlab::engine::MATLABException(标识符文本, 万能转码<String>(标识符流.str());
+		}
+		else
+			throw matlab::engine::MATLABException(标识符流.str(), 万能转码<String>(消息));
 	}
 	//检查GetLastError()，如果有错误则抛出MATLAB异常。如果没有错误则不执行任何操作。可选使用指定的 MException identifier
 	void CheckLastError(const std::string& identifier = "MexTools:Win32Exception");
@@ -282,8 +304,6 @@ namespace Mex工具
 	//有用的全局变量。这些变量会在用户定义的初始化之前被自动初始化，但在进入用户初始化之前这些变量可能尚未初始化，因此用户不应依赖这些变量进行全局变量初始化。在进入用户初始化以后可以使用，但通常不应该修改这些变量。
 
 	extern matlab::data::ArrayFactory 数组工厂;
-	//使用此方法根据运行时类型创建数组，作为对数组工厂功能的补充。
-	matlab::data::Array 动态类型创建数组(matlab::data::ArrayType 类型, matlab::data::ArrayDimensions&& 各维尺寸);
 	extern std::shared_ptr<matlab::engine::MATLABEngine> MATLAB引擎;
 
 	//万能转码
@@ -310,12 +330,13 @@ namespace Mex工具
 	}
 	//将MATLAB标量元素类型转换为标量数组类型
 	template<typename T>
-	inline matlab::data::TypedArray<T>万能转码(T&& 输入)
+		requires requires(T&& 输入) { 数组工厂.createScalar<内部::数值标准化_t<T>>(std::move(输入)); }
+	inline matlab::data::TypedArray<内部::数值标准化_t<T>>万能转码(T&& 输入)
 	{
-		return 数组工厂.createScalar<T>(std::move(输入));
+		return 数组工厂.createScalar<内部::数值标准化_t<T>>(std::move(输入));
 	}
 	//将C++指针转换为 MATLAB uint64 标量
-	inline matlab::data::TypedArray<size_t>万能转码(void* 输入)
+	inline matlab::data::TypedArray<size_t>万能转码(const void* 输入)
 	{
 		return 数组工厂.createScalar<size_t>((size_t)输入);
 	}

@@ -604,5 +604,52 @@ namespace Mex工具
 				return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<T>((T*)指针, 自定义删除器));
 			}
 		};
+		template<typename T>
+		struct 数值标准化
+		{
+			using type = T;
+		};
+		template<>
+		struct 数值标准化<__int8>
+		{
+			using type = int8_t;
+		};
+		template<>
+		struct 数值标准化<unsigned __int8>
+		{
+			using type = uint8_t;
+		};
+		template<>
+		struct 数值标准化<__int16>
+		{
+			using type = int16_t;
+		};
+		template<>
+		struct 数值标准化<unsigned __int16>
+		{
+			using type = uint16_t;
+		};
+		template<>
+		struct 数值标准化<__int32>
+		{
+			using type = int32_t;
+		};
+		template<>
+		struct 数值标准化<unsigned __int32>
+		{
+			using type = uint32_t;
+		};
+		template<>
+		struct 数值标准化<__int64>
+		{
+			using type = int64_t;
+		};
+		template<>
+		struct 数值标准化<unsigned __int64>
+		{
+			using type = uint64_t;
+		};
+		template<typename T>
+		using 数值标准化_t = typename 数值标准化<std::remove_cvref_t<T>>::type;
 	}
 }
