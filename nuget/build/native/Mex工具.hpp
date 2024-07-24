@@ -38,7 +38,7 @@ namespace Mex工具
 	{
 		for (const char* 字符指针 = typeid(枚举类型).name(); const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
 			输出流 << 字符;
-		输出流 << ':' << magic_enum::enum_name(异常);
+		输出流 << ':' << magic_enum::enum_name(枚举);
 	}
 /*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将同时作为MException的identifier和message，因此只能使用英文、数字和下划线。
 MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
@@ -403,7 +403,7 @@ namespace Mex工具
 	[[noreturn]] void EnumThrow(标识符类型 标识符, 消息类型...消息)
 	{
 		std::ostringstream 标识符流;
-		枚举转标识符(标识符流, 异常);
+		枚举转标识符(标识符流, 标识符);
 		if constexpr (将标识符添加到消息 && sizeof...(消息类型))
 		{
 			const std::string 标识符文本 = 标识符流.str();
@@ -428,7 +428,7 @@ namespace Mex工具
 	[[noreturn]] void EnumThrow(标识符类型 标识符, 消息类型...消息)
 	{
 		std::ostringstream 标识符流;
-		枚举转标识符(标识符流, 异常);
+		枚举转标识符(标识符流, 标识符);
 		if constexpr (将标识符添加到消息 && sizeof...(消息类型))
 		{
 			const std::string 标识符文本 = 标识符流.str();
@@ -443,21 +443,43 @@ namespace Mex工具
 		}
 	}
 	//任意枚举类型当作警告抛给MATLAB。枚举类型名和字面文本将同时作为警告的identifier和message，因此只能使用英文、数字和下划线。警告不是异常，不会中断程序。
-	template<bool 将标识符添加到消息 = true, typename 标识符类型, 内部::可写入UTF8流...消息类型>
+	template<bool 将标识符添加到消息 = true, typename 标识符类型, typename...消息类型>
 	void EnumWarning(标识符类型 标识符, 消息类型...消息)
 	{
 		if constexpr (将标识符添加到消息 && sizeof...(消息类型))
 		{
-
+			std::basic_ostringstream<char16_t> 标识符流;
+			枚举转标识符(标识符流, 标识符);
+			const matlab::data::String 标识符文本 = 标识符流.str();
+			((标识符流 << u"：") << ... << 消息);//折叠表达式要求括号
+			MATLAB引擎->feval("warning", 标识符文本, 标识符流.str());
+		}
+		else
+		{
+			std::ostringstream 标识符流;
+			枚举转标识符(标识符流, 标识符);
+			std::basic_ostringstream<char16_t> 消息流;
+			(消息流 << ... << 消息);
+			MATLAB引擎->feval("warning", 标识符流.str(), 消息流.str());
+		}
+	}
+	//任意枚举类型当作警告抛给MATLAB。枚举类型名和字面文本将同时作为警告的identifier和message，因此只能使用英文、数字和下划线。警告不是异常，不会中断程序。
+	template<bool 将标识符添加到消息 = true, typename 标识符类型, 内部::可写入UTF8流...消息类型>
+	void EnumWarning(标识符类型 标识符, 消息类型...消息)
+	{
+		std::ostringstream 标识符流;
+		枚举转标识符(标识符流, 标识符);
+		if constexpr (将标识符添加到消息 && sizeof...(消息类型))
+		{
 			const std::string 标识符文本 = 标识符流.str();
 			((标识符流 << "：") << ... << 消息);//折叠表达式要求括号
-			throw matlab::engine::MATLABException(标识符文本, 万能转码<matlab::data::String>(标识符流.str()));
+			MATLAB引擎->feval("warning", 标识符文本, 标识符流.str());
 		}
 		else
 		{
 			std::ostringstream 消息流;
 			(消息流 << ... << 消息);
-			throw matlab::engine::MATLABException(标识符流.str(), 万能转码<matlab::data::String>(消息流.str()));
+			MATLAB引擎->feval("warning", 标识符流.str(), 消息流.str());
 		}
 	}
 }

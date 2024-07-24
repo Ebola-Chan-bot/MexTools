@@ -19,7 +19,7 @@ namespace Mex工具
 		template<typename T, typename 目标>
 		concept 必须显式转换到 = !std::convertible_to<T, 目标>&& 可以显式转换到<T, 目标>;
 		template<typename T, typename 目标>
-		concept 必须MATLAB转换到 = !(std::convertible_to<T, 目标> && 可以显式转换到<T, 目标>);
+		concept 必须MATLAB转换到 = !(std::convertible_to<T, 目标> || 可以显式转换到<T, 目标>);
 		template<typename T>
 		const std::u16string MATLAB转换函数 = u"";
 		template<>
@@ -363,12 +363,12 @@ namespace Mex工具
 			}
 		};
 		template<typename 迭代器>
-		class 迭代MC<const 迭代器>
+		class 迭代MC<迭代器&>
 		{
 			迭代器 输出;
 			using 值类型 = 取迭代器值类型<迭代器>;
 		public:
-			迭代MC(const 迭代器& 输出) :输出(输出) {}
+			迭代MC(迭代器&& 输出) :输出(std::move(输出)) {}
 			template<std::convertible_to<值类型> T>
 			void operator()(const TypedArray<T>& 输入)
 			{
@@ -853,6 +853,16 @@ namespace Mex工具
 			using type = T;
 		};
 		template<>
+		struct 数值标准化<long>
+		{
+			using type =int32_t;
+		};
+		template<>
+		struct 数值标准化<unsigned long>
+		{
+			using type = uint32_t;
+		};
+		template<>
 		struct 数值标准化<__int8>
 		{
 			using type = int8_t;
@@ -896,15 +906,5 @@ namespace Mex工具
 		using 数值标准化_t = typename 数值标准化<std::remove_cvref_t<T>>::type;
 		template<typename T>
 		concept 可写入UTF8流 = requires(std::ostringstream 流, T 消息) { 流 << 消息; };
-		template<typename T>
-		concept 可写入UTF16流 =requires(std::basic_ostringstream<char16_t> 流, T 消息) { 流 << 消息; };
-		template<bool 标识符添加到消息>
-		struct EnumThrow_s;
-		template<>
-		struct EnumThrow_s<true>
-		{
-			template<typename 枚举类型,
-			[[noreturn]]static void Throw
-		};
 	}
 }

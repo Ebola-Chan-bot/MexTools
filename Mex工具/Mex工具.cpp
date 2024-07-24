@@ -231,11 +231,26 @@ namespace Mex工具
 }
 using namespace Mex工具;
 using namespace matlab::mex;
-static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
+static void Cpp捕获(const std::move_only_function<void()const>& 函数)
+{
+	try
+	{
+		函数();
+	}
+	catch (const std::exception& 异常)
+	{
+		throw;
+	}
+	catch (...)
+	{
+		EnumThrow(MexTools::Unexpected_CPP_exception);
+	}
+}
+static void 安全调用(const std::move_only_function<void()const>& 函数)
 {
 	__try
 	{
-		执行(outputs, inputs);
+		Cpp捕获(函数);
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
@@ -245,37 +260,19 @@ static void SEH安全(ArgumentList& outputs, ArgumentList& inputs)
 MexFunction::MexFunction()
 {
 	MATLAB引擎 = getEngine();
-	初始化();
+	安全调用(初始化);
 }
 void MexFunction::operator()(ArgumentList outputs, ArgumentList inputs)
 {
-	try
-	{
-		SEH安全(outputs, inputs);
-	}
-	catch (const std::exception&)
-	{
-		//标准异常由MATLAB负责捕获，这里直接重抛
-		throw;
-	}
-	catch (...)
-	{
-		//无法识别的异常，转换为统一的信息
-		EnumThrow(MexTools::Unexpected_CPP_exception);
-	}
-	数组工厂.createArray<Struct>({ 1 });
+	安全调用([&outputs, &inputs]() {执行(outputs, inputs); });
 }
 MexFunction::~MexFunction()
 {
-	清理();
-	for (const auto& a : 自动析构表)
-		__try
-	{
-		a.second(a.first);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		MATLAB引擎->feval("warning",magic_enum::enum_name(MexTools::An_unexpected_error_occurred_while_destroying_an_object))
-	}
+	安全调用([]()
+		{
+			清理();
+			for (auto& [指针, 删除器] : 自动析构表)
+				删除器(指针);
+		});
 }
 constexpr void* volatile 导出函数[] = { mexCreateMexFunction,mexDestroyMexFunction,mexFunctionAdapter };
