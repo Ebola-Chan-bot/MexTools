@@ -269,6 +269,13 @@ MexFunction::~MexFunction()
 {
 	清理();
 	for (const auto& a : 自动析构表)
+		__try
+	{
 		a.second(a.first);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		MATLAB引擎->feval("warning",magic_enum::enum_name(MexTools::An_unexpected_error_occurred_while_destroying_an_object))
+	}
 }
 constexpr void* volatile 导出函数[] = { mexCreateMexFunction,mexDestroyMexFunction,mexFunctionAdapter };
