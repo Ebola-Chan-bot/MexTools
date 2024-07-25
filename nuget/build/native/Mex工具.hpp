@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <magic_enum.hpp>
 #include <mex.hpp>
+#include "Mex工具.1.hpp"
 //Mex工具全局异常枚举。全部可解析为 MException identifier
 enum class MexTools
 {
@@ -35,15 +36,6 @@ namespace Mex工具
 
 	//异常处理
 
-	//将C++枚举以文本形式输出到流。注意，此函数假定枚举类名和枚举项只包含英文、数字、下划线和双冒号。包含其它字符可能产生乱码问题。
-	template<typename 字符类型,typename 枚举类型>
-	void 枚举转标识符(std::basic_ostream<字符类型>& 输出流, 枚举类型 枚举)
-	{
-		//typeid().name前5个字符是"enum "，之后是枚举类名
-		for (const char* 字符指针 = typeid(枚举类型).name() + 5; const char 字符 = *字符指针; 字符指针 += 字符 == ':' ? 2 : 1)
-			输出流 << 字符;
-		输出流 << ':' << magic_enum::enum_name(枚举);
-	}
 /*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将同时作为MException的identifier和message，因此只能使用英文、数字和下划线。
 MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
 用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
@@ -53,7 +45,7 @@ MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型
 	[[noreturn]] void EnumThrow(T 异常)
 	{
 		std::ostringstream 异常信息流;
-		枚举转标识符(异常信息流, 异常);
+		内部::枚举转标识符(异常信息流, 异常);
 		const std::string 异常信息 = 异常信息流.str();
 		throw matlab::engine::MATLABException(异常信息, std::u16string(异常信息.cbegin(), 异常信息.cend()));
 	}
@@ -62,12 +54,12 @@ MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型
 	void EnumWarning(T 异常)
 	{
 		std::basic_ostringstream<char16_t> 异常信息流;
-		枚举转标识符(异常信息流, 异常);
+		内部::枚举转标识符(异常信息流, 异常);
 		const matlab::data::String 异常信息 = 异常信息流.str();
 		MATLAB引擎->feval("warning", 异常信息, 异常信息);
 	}
 }
-#include "Mex工具.前置.hpp"
+#include "Mex工具.2.hpp"
 namespace Mex工具
 {
 	//公开的命名空间不能 using namespace，会导致用户 using 本命名空间以后级联 using
@@ -399,11 +391,11 @@ namespace Mex工具
 	[[noreturn]] void EnumThrow(标识符类型 标识符, 消息类型...消息)
 	{
 		std::ostringstream 标识符流;
-		枚举转标识符(标识符流, 标识符);
+		内部::枚举转标识符(标识符流, 标识符);
 		if constexpr (将标识符添加到消息 && sizeof...(消息类型))
 		{
 			const std::string 标识符文本 = 标识符流.str();
-			std::basic_ostringstream<char16_t> 消息流(万能转码<matlab::data::String>(标识符文本));
+			std::basic_ostringstream<char16_t> 消息流(万能转码<matlab::data::String>(标识符文本),std::ios_base::ate);
 			((消息流 << u"：") << ... << 消息);
 			throw matlab::engine::MATLABException(标识符文本, 消息流.str());
 		}
@@ -424,7 +416,7 @@ namespace Mex工具
 	[[noreturn]] void EnumThrow(标识符类型 标识符, 消息类型...消息)
 	{
 		std::ostringstream 标识符流;
-		枚举转标识符(标识符流, 标识符);
+		内部::枚举转标识符(标识符流, 标识符);
 		if constexpr (将标识符添加到消息 && sizeof...(消息类型))
 		{
 			const std::string 标识符文本 = 标识符流.str();
@@ -445,7 +437,7 @@ namespace Mex工具
 		if constexpr (将标识符添加到消息 && sizeof...(消息类型))
 		{
 			std::basic_ostringstream<char16_t> 标识符流;
-			枚举转标识符(标识符流, 标识符);
+			内部::枚举转标识符(标识符流, 标识符);
 			const matlab::data::String 标识符文本 = 标识符流.str();
 			((标识符流 << u"：") << ... << 消息);//折叠表达式要求括号
 			MATLAB引擎->feval("warning", 标识符文本, 标识符流.str());
@@ -453,7 +445,7 @@ namespace Mex工具
 		else
 		{
 			std::ostringstream 标识符流;
-			枚举转标识符(标识符流, 标识符);
+			内部::枚举转标识符(标识符流, 标识符);
 			std::basic_ostringstream<char16_t> 消息流;
 			(消息流 << ... << 消息);
 			MATLAB引擎->feval("warning", 标识符流.str(), 消息流.str());
@@ -464,7 +456,7 @@ namespace Mex工具
 	void EnumWarning(标识符类型 标识符, 消息类型...消息)
 	{
 		std::ostringstream 标识符流;
-		枚举转标识符(标识符流, 标识符);
+		内部::枚举转标识符(标识符流, 标识符);
 		if constexpr (将标识符添加到消息 && sizeof...(消息类型))
 		{
 			const std::string 标识符文本 = 标识符流.str();
@@ -478,18 +470,11 @@ namespace Mex工具
 			MATLAB引擎->feval("warning", 标识符流.str(), 消息流.str());
 		}
 	}
-	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常。可选使用特定枚举值作为 MException identifier。
-	template<typename T>
-	inline void CheckLastError(T identifier = MexTools::Win32_exception)
+	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常，没有错误则抛出枚举值指定的未知原因默认异常。模板参数可选指定标识符是否添加到消息。可选使用特定枚举值作为 MException identifier。可选输入其它补充消息。
+	template<bool 将标识符添加到消息 = true, typename 标识符类型, typename...消息类型>
+	[[noreturn]] inline void ThrowLastError(标识符类型 identifier = MexTools::Win32_exception, 消息类型...消息)
 	{
-		内部::CheckLastError(std::string(magic_enum::enum_name(identifier)));
-	}
-	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常，没有错误则抛出枚举值指定的未知原因默认异常。可选使用特定枚举值作为 MException identifier。
-	template<typename T>
-	[[noreturn]] inline void ThrowLastError(T identifier = MexTools::Win32_exception)
-	{
-		内部::CheckLastError(std::string(magic_enum::enum_name(identifier)));
-		EnumThrow(identifier);
+		EnumThrow<将标识符添加到消息>(identifier, 内部::LastErrorMessage().get(), 消息...);
 	}
 }
-#include"Mex工具.后置.hpp"
+#include"Mex工具.3.hpp"

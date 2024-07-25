@@ -195,9 +195,10 @@
     <ClCompile Include="Mex工具.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\nuget\build\native\Mex工具.1.hpp" />
     <ClInclude Include="..\nuget\build\native\Mex工具.hpp" />
-    <ClInclude Include="..\nuget\build\native\Mex工具.前置.hpp" />
-    <ClInclude Include="..\nuget\build\native\Mex工具.后置.hpp" />
+    <ClInclude Include="..\nuget\build\native\Mex工具.2.hpp" />
+    <ClInclude Include="..\nuget\build\native\Mex工具.3.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

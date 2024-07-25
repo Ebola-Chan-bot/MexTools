@@ -32,10 +32,13 @@
     <ClInclude Include="..\nuget\build\native\Mex工具.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\nuget\build\native\Mex工具.后置.hpp">
+    <ClInclude Include="..\nuget\build\native\Mex工具.3.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\nuget\build\native\Mex工具.前置.hpp">
+    <ClInclude Include="..\nuget\build\native\Mex工具.2.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nuget\build\native\Mex工具.1.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
