@@ -265,7 +265,11 @@ static void 安全调用(const std::move_only_function<void()const>& 函数)
 	{
 		Cpp捕获(函数);
 	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
+	__except ([](DWORD 错误代码) 
+		{
+			return 1;
+			EXCEPTION_ACCESS_VIOLATION
+		}(GetExceptionCode()))
 	{
 		EnumThrow(MexTools::Unexpected_SEH_exception);
 	}
