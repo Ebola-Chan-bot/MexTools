@@ -21,37 +21,37 @@ namespace Mex工具
 		template<typename T, typename 目标>
 		concept 必须MATLAB转换到 = !(std::convertible_to<T, 目标> || 可以显式转换到<T, 目标>);
 		template<typename T>
-		const std::u16string MATLAB转换函数 = u"";
+		struct MATLAB转换函数;
 		template<>
-		const std::u16string MATLAB转换函数<bool> = u"logical";
+		struct MATLAB转换函数<bool> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<char16_t> = u"char";
+		struct MATLAB转换函数<char16_t> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<MATLABString> = u"string";
+		struct MATLAB转换函数<MATLABString> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<double> = u"double";
+		struct MATLAB转换函数<double> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<float> = u"single";
+		struct MATLAB转换函数<float> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<int8_t> = u"int8";
+		struct MATLAB转换函数<int8_t> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<int16_t> = u"int16";
+		struct MATLAB转换函数<int16_t> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<int32_t> = u"int32";
+		struct MATLAB转换函数<int32_t> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<int64_t> = u"int64";
+		struct MATLAB转换函数<int64_t> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<uint8_t> = u"uint8";
+		struct MATLAB转换函数<uint8_t> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<uint16_t> = u"uint16";
+		struct MATLAB转换函数<uint16_t> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<uint32_t> = u"uint32";
+		struct MATLAB转换函数<uint32_t> { static const std::u16string value; };
 		template<>
-		const std::u16string MATLAB转换函数<uint64_t> = u"uint64";
+		struct MATLAB转换函数<uint64_t> { static const std::u16string value; };
 		template<typename T>
-		const std::u16string MATLAB转换函数<std::complex<T>> = u"complex";
+		struct MATLAB转换函数<std::complex<T>> { static const std::u16string value; };
 		template<typename T>
-		const std::u16string MATLAB转换函数<SparseArray<T>> = u"sparse";
+		const std::u16string MATLAB转换函数<std::complex<T>>::value = u"complex";
 		template <class _Ty, class... _Types>
 		_INLINE_VAR constexpr bool _Is_any_of_v = // true if and only if _Ty is in _Types
 #if _HAS_CXX17
@@ -120,18 +120,18 @@ namespace Mex工具
 
 		//万能转码实现
 
+		template<typename T,typename 转换到>
+		concept 可以MATLAB元素转换到 = requires(T && 输入) { MATLAB引擎->feval<转换到>(MATLAB转换函数<转换到>::value, std::move(输入)); };
+		template<typename T,typename 转换到>
+		concept 可以MATLAB数组转换到 = requires(T && 输入, 转换到 & 返回值) { 返回值 = MATLAB引擎->feval(MATLAB转换函数<转换到>::value, std::move(输入))[0]; };
 		template<typename T>
-		concept 可以MATLAB元素转换 = requires(T && 输入) { MATLAB引擎->feval<String>(MATLAB转换函数<void>, std::move(输入)); };
+		concept 需要MATLAB元素转字符串 = 需要MATLAB转换字符串<T> && 可以MATLAB元素转换到<T,MATLABString>;
 		template<typename T>
-		concept 可以MATLAB数组转换 = requires(T && 输入) { MATLAB引擎->feval(MATLAB转换函数<void>, std::move(输入)); };
-		template<typename T>
-		concept 需要MATLAB元素转字符串 = 需要MATLAB转换字符串<T> && 可以MATLAB元素转换<T>;
-		template<typename T>
-		concept 需要MATLAB数组转字符串 = 需要MATLAB转换字符串<T> && 可以MATLAB数组转换<T>;
+		concept 需要MATLAB数组转字符串 = 需要MATLAB转换字符串<T> && 可以MATLAB数组转换到<T,MATLABString>;
 		template<typename T, typename 目标>
-		concept 必须MATLAB元素转换到 = 必须MATLAB转换到<T, 目标>&& 可以MATLAB元素转换<T>;
+		concept 必须MATLAB元素转换到 = 必须MATLAB转换到<T, 目标>&& 可以MATLAB元素转换到<T,目标>;
 		template<typename T, typename 目标>
-		concept 必须MATLAB数组转换到 = 必须MATLAB转换到<T, 目标>&& 可以MATLAB数组转换<T>;
+		concept 必须MATLAB数组转换到 = 必须MATLAB转换到<T, 目标>&& 可以MATLAB数组转换到<T,目标>;
 
 		template<typename 输出>
 		struct 标量转换
@@ -146,10 +146,15 @@ namespace Mex工具
 			{
 				return (输出)输入[0].operator 元素类型();
 			}
-			template<template<typename>typename 是否稀疏, 必须MATLAB转换到<输出> 元素类型>
+			template<template<typename>typename 是否稀疏, 必须MATLAB数组转换到<输出> 元素类型>
 			输出 operator()(const 是否稀疏<元素类型>& 输入)
 			{
-				return MATLAB引擎->feval(MATLAB转换函数<输出>, std::move(输入))[0];
+				return MATLAB引擎->feval(MATLAB转换函数<输出>::value, std::move(输入))[0];
+			}
+			template<typename T>
+			[[noreturn]] 输出 operator()(T 输入)
+			{
+				EnumThrow(MexTools::Unsupported_scalar_conversion_types);
 			}
 		};
 
@@ -161,12 +166,12 @@ namespace Mex工具
 			template<必须MATLAB元素转换到<输出>T>
 			static TypedArray<输出>转换(T&& 输入)
 			{
-				return MATLAB引擎->feval(MATLAB转换函数<输出>, 数组工厂.createScalar(std::move(输入)));
+				return MATLAB引擎->feval(MATLAB转换函数<输出>::value, 数组工厂.createScalar(std::move(输入)));
 			}
 			template<必须MATLAB数组转换到<输出>T>
 			static TypedArray<输出>转换(T&& 输入)
 			{
-				return MATLAB引擎->feval(MATLAB转换函数<输出>, std::move(输入));
+				return MATLAB引擎->feval(MATLAB转换函数<输出>::value, std::move(输入));
 			}
 		};
 
@@ -214,12 +219,12 @@ namespace Mex工具
 			template<需要MATLAB元素转字符串 T>
 			static CharArray 转换(T&& 输入)
 			{
-				return 数组工厂.createCharArray(MATLAB引擎->feval<String>(MATLAB转换函数<MATLABString>, std::move(输入)));
+				return 数组工厂.createCharArray(MATLAB引擎->feval<String>(MATLAB转换函数<MATLABString>::value, std::move(输入)));
 			}
 			template<需要MATLAB数组转字符串 T>
 			static CharArray 转换(T&& 输入)
 			{
-				return 数组工厂.createCharArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0].operator String());
+				return 数组工厂.createCharArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0].operator String());
 			}
 		};
 		template<>
@@ -260,12 +265,12 @@ namespace Mex工具
 			template<需要MATLAB元素转字符串 T>
 			static String 转换(T&& 输入)
 			{
-				return MATLAB引擎->feval<String>(MATLAB转换函数<MATLABString>, std::move(输入));
+				return MATLAB引擎->feval<String>(MATLAB转换函数<MATLABString>::value, std::move(输入));
 			}
 			template<需要MATLAB数组转字符串 T>
 			static String 转换(T&& 输入)
 			{
-				return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0];
+				return MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0];
 			}
 
 		};
@@ -277,12 +282,12 @@ namespace Mex工具
 			template<需要MATLAB元素转字符串 T>
 			static MATLABString 转换(T&& 输入)
 			{
-				return MATLAB引擎->feval<MATLABString>(MATLAB转换函数<MATLABString>, std::move(输入));
+				return MATLAB引擎->feval<MATLABString>(MATLAB转换函数<MATLABString>::value, std::move(输入));
 			}
 			template<需要MATLAB数组转字符串 T>
 			static MATLABString 转换(T&& 输入)
 			{
-				return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0];
+				return MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0];
 			}
 			template<typename T>
 				requires (!(_Is_any_of_v<T, MATLABString, String> || 需要MATLAB转换字符串<T>))
@@ -298,7 +303,7 @@ namespace Mex工具
 			template<需要MATLAB数组转字符串 T>
 			static StringArray 转换(T&& 输入)
 			{
-				return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入));
+				return MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入));
 			}
 			template<typename T>
 				requires(!(std::is_same_v<std::remove_cvref_t<T>, StringArray> || 需要MATLAB数组转字符串<T>))
@@ -310,14 +315,19 @@ namespace Mex工具
 		template<typename 迭代器>
 		class 迭代MC
 		{
-			迭代器& 输出;
+			static constexpr bool 迭代器输出 = std::is_lvalue_reference_v<迭代器>;
+			std::conditional_t<迭代器输出, 迭代器, std::remove_cvref_t<迭代器>> 输出;
 			using 值类型 = 取迭代器值类型<迭代器>;
 		public:
-			迭代MC(迭代器& 输出) :输出(输出) {}
+			迭代MC(迭代器 输出) :输出(std::forward<迭代器>(输出)) {}
 			template<std::convertible_to<值类型> T>
+			requires !std::is_same_v<T,Enumeration>
 			void operator()(const TypedArray<T>& 输入)
 			{
-				输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
+				if constexpr (迭代器输出)
+					输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
+				else
+					std::copy(输入.cbegin(), 输入.cend(), 输出);
 			}
 			template<必须显式转换到<值类型>T>
 			void operator()(const TypedArray<T>& 输入)
@@ -328,7 +338,7 @@ namespace Mex工具
 			template<必须MATLAB元素转换到<值类型>T>
 			void operator()(TypedArray<T>&& 输入)
 			{
-				operator()((TypedArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
+				operator()((TypedArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>::value, std::move(输入)));
 			}
 			template<std::convertible_to<值类型> T>
 			void operator()(const matlab::data::SparseArray<T>& 输入)
@@ -341,7 +351,8 @@ namespace Mex工具
 					const SparseIndex 索引 = 输入.getIndex(a);
 					输出[索引.first + 索引.second * 高度] = *a;
 				}
-				输出 += 输入.getNumberOfElements();
+				if constexpr (迭代器输出)
+					输出 += 输入.getNumberOfElements();
 			}
 			template<必须显式转换到<值类型>T>
 			void operator()(const matlab::data::SparseArray<T>& 输入)
@@ -354,130 +365,57 @@ namespace Mex工具
 					const SparseIndex 索引 = 输入.getIndex(a);
 					输出[索引.first + 索引.second * 高度] = (值类型)*a;
 				}
-				输出 += 输入.getNumberOfElements();
+				if constexpr (迭代器输出)
+					输出 += 输入.getNumberOfElements();
 			}
 			template<必须MATLAB元素转换到<值类型>T>
-			void operator()(matlab::data::SparseArray<T>&& 输入)
+				requires requires {GetSparseArrayType<值类型>::type; }
+			void operator()(SparseArray<T>&& 输入)
 			{
-				operator()((matlab::data::SparseArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
+				operator()(TypedArray<值类型>(MATLAB引擎->feval(MATLAB转换函数<值类型>, MATLAB引擎->feval("full", std::move(输入)))));
+			}
+			template<typename T>
+			void operator()(T 输入)
+			{
+				EnumThrow(MexTools::Iterative_conversion_type_not_supported);
 			}
 		};
 		template<typename 迭代器>
-		class 迭代MC<迭代器&>
+			requires std::is_same_v<std::remove_cvref_t<迭代器>, void*>
+		class 迭代MC<迭代器>
 		{
-			迭代器 输出;
-			using 值类型 = 取迭代器值类型<迭代器>;
+			static constexpr bool 迭代器输出 = std::is_lvalue_reference_v<迭代器>;
+			std::conditional_t<迭代器输出, 迭代器, std::remove_cvref_t<迭代器>> 输出;
 		public:
-			迭代MC(迭代器&& 输出) :输出(std::move(输出)) {}
-			template<std::convertible_to<值类型> T>
-			void operator()(const TypedArray<T>& 输入)
-			{
-				std::copy(输入.cbegin(), 输入.cend(), 输出);
-			}
-			template<必须显式转换到<值类型>T>
-			void operator()(const TypedArray<T>& 输入)
-			{
-				for (T a : 输入)
-					*(输出++) = (值类型)a;
-			}
-			template<必须MATLAB元素转换到<值类型>T>
-			void operator()(TypedArray<T>&& 输入)
-			{
-				operator()((TypedArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
-			}
-			template<std::convertible_to<值类型> T>
-			void operator()(const matlab::data::SparseArray<T>& 输入)
-			{
-				const TypedIterator<const T>迭代尾 = 输入.cend();
-				const size_t 高度 = 输入.getDimensions().front();
-				std::fill_n(输出, 输入.getNumberOfElements(), 0);
-				for (TypedIterator<const T>a = 输入.cbegin(); a < 迭代尾; ++a)
-				{
-					const SparseIndex 索引 = 输入.getIndex(a);
-					输出[索引.first + 索引.second * 高度] = *a;
-				}
-			}
-			template<必须显式转换到<值类型>T>
-			void operator()(const matlab::data::SparseArray<T>& 输入)
-			{
-				const TypedIterator<const T>迭代尾 = 输入.cend();
-				const size_t 高度 = 输入.getDimensions().front();
-				std::fill_n(输出, 输入.getNumberOfElements(), 0);
-				for (TypedIterator<const T>a = 输入.cbegin(); a < 迭代尾; ++a)
-				{
-					const SparseIndex 索引 = 输入.getIndex(a);
-					输出[索引.first + 索引.second * 高度] = (值类型)*a;
-				}
-			}
-			template<必须MATLAB元素转换到<值类型>T>
-			void operator()(matlab::data::SparseArray<T>&& 输入)
-			{
-				operator()((matlab::data::SparseArray<值类型>)MATLAB引擎->feval(MATLAB转换函数<值类型>, std::move(输入)));
-			}
-		};
-		template<>
-		class 迭代MC<void*>
-		{
-			void*& 输出;
-		public:
-			迭代MC(void*& 输出) :输出(输出) {}
+			迭代MC(迭代器 输出) :输出(std::forward<迭代器>(输出)) {}
 			template<template<typename>typename 是否稀疏, typename T>
 			void operator()(const 是否稀疏<T>& 输入)
 			{
-				迭代MC<T*>((T*&)输出)(输入);
-			}
-		};
-		template<>
-		class 迭代MC<void*const>
-		{
-			void* 输出;
-		public:
-			迭代MC(void*const& 输出) :输出(输出) {}
-			template<template<typename>typename 是否稀疏, typename T>
-			void operator()(const 是否稀疏<T>& 输入)
-			{
-				迭代MC<T*>((T*&)输出)(输入);
+				if constexpr (迭代器输出)
+					迭代MC<T*&>((T*&)输出)(输入);
+				else
+					迭代MC<T*>((T*)输出)(输入);
 			}
 		};
 		template<迭代器值类型是<CharArray>迭代器>
 		class 迭代MC<迭代器>
 		{
-			迭代器& 输出;
+			static constexpr bool 迭代器输出 = std::is_lvalue_reference_v<迭代器>;
+			std::conditional_t<迭代器输出, 迭代器, std::remove_cvref_t<迭代器>> 输出;
 		public:
-			迭代MC(迭代器& 输出) :输出(输出) {}
-			void operator()(CharArray&& 输入)
-			{
-				*(输出++) = std::move(输入);
-			}
-			void operator()(const CellArray& 输入)
-			{
-				输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
-			}
-			void operator()(const StringArray& 输入)
-			{
-				for (String a : 输入)
-					*(输出++) = 数组工厂.createCharArray(std::move(a));
-			}
-			template<typename T>
-				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
-			void operator()(T&& 输入)
-			{
-				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
-			}
-		};
-		template<迭代器值类型是<CharArray>迭代器>
-		class 迭代MC<const 迭代器>
-		{
-			迭代器 输出;
-		public:
-			迭代MC(const 迭代器& 输出) :输出(输出) {}
+			迭代MC(迭代器 输出) :输出(std::forward<迭代器>(输出)) {}
 			void operator()(CharArray&& 输入)
 			{
 				*输出 = std::move(输入);
+				if constexpr (迭代器输出)
+					++输出;
 			}
 			void operator()(const CellArray& 输入)
 			{
-				std::copy(输入.cbegin(), 输入.cend(), 输出);
+				if constexpr (迭代器输出)
+					输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
+				else
+					std::copy(输入.cbegin(), 输入.cend(), 输出);
 			}
 			void operator()(const StringArray& 输入)
 			{
@@ -488,49 +426,16 @@ namespace Mex工具
 				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
 			void operator()(T&& 输入)
 			{
-				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
+				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))));
 			}
 		};
 		template<迭代器值类型是<String, MATLABString>迭代器>
 		class 迭代MC<迭代器>
 		{
-			迭代器& 输出;
+			static constexpr bool 迭代器输出 = std::is_lvalue_reference_v<迭代器>;
+			std::conditional_t<迭代器输出, 迭代器, std::remove_cvref_t<迭代器>> 输出;
 		public:
-			迭代MC(迭代器& 输出) :输出(输出) {}
-			void operator()(const CharArray& 输入)
-			{
-				输出++->resize_and_overwrite(输入.getNumberOfElements(), [&输入](char16_t* 指针, size_t 尺寸)
-					{
-						std::copy(输入.cbegin(), 输入.cend(), 指针);
-						return 输入.getNumberOfElements();
-					});
-			}
-			void operator()(const CellArray& 输入)
-			{
-				for (CharArray a : 输入)
-					输出++->resize_and_overwrite(a.getNumberOfElements(), [&a](char16_t* 指针, size_t 尺寸)
-						{
-							std::copy(a.cbegin(), a.cend(), 指针);
-							return a.getNumberOfElements();
-						});
-			}
-			void operator()(const StringArray& 输入)
-			{
-				输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
-			}
-			template<typename T>
-				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
-			void operator()(T&& 输入)
-			{
-				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
-			}
-		};
-		template<迭代器值类型是<String, MATLABString>迭代器>
-		class 迭代MC<const 迭代器>
-		{
-			迭代器 输出;
-		public:
-			迭代MC(const 迭代器& 输出) :输出(输出) {}
+			迭代MC(迭代器 输出) :输出(std::forward<迭代器>(输出)) {}
 			void operator()(const CharArray& 输入)
 			{
 				输出->resize_and_overwrite(输入.getNumberOfElements(), [&输入](char16_t* 指针, size_t 尺寸)
@@ -538,6 +443,8 @@ namespace Mex工具
 						std::copy(输入.cbegin(), 输入.cend(), 指针);
 						return 输入.getNumberOfElements();
 					});
+				if constexpr (迭代器输出)
+					++输出;
 			}
 			void operator()(const CellArray& 输入)
 			{
@@ -550,63 +457,25 @@ namespace Mex工具
 			}
 			void operator()(const StringArray& 输入)
 			{
-				std::copy(输入.cbegin(), 输入.cend(), 输出);
+				if constexpr (迭代器输出)
+					输出 = std::copy(输入.cbegin(), 输入.cend(), 输出);
+				else
+					std::copy(输入.cbegin(), 输入.cend(), 输出);
 			}
 			template<typename T>
 				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
 			void operator()(T&& 输入)
 			{
-				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
+				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))));
 			}
 		};
 		template<迭代器值类型是<std::string>迭代器>
 		class 迭代MC<迭代器>
 		{
-			迭代器& 输出;
+			static constexpr bool 迭代器输出 = std::is_lvalue_reference_v<迭代器>;
+			std::conditional_t<迭代器输出, 迭代器, std::remove_cvref_t<迭代器>> 输出;
 		public:
-			迭代MC(迭代器& 输出) :输出(输出) {}
-			void operator()(CharArray&& 输入)
-			{
-				const int 长度 = 输入.getNumberOfElements();
-				输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)CharArray(std::move(输入)).release().get(), 长度](char* 指针, size_t 尺寸)
-					{
-						return WCTMB(宽指针, 长度, 指针, 尺寸) - 1;
-					});
-			}
-			void operator()(const CellArray& 输入)
-			{
-				for (CharArray& a : 输入)
-				{
-					const int 长度 = a.getNumberOfElements();
-					输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)a.release().get(), 长度](char* 指针, size_t 尺寸)
-						{
-							return WCTMB(宽指针, 长度, 指针, 尺寸) - 1;
-						});
-				}
-			}
-			void operator()(const StringArray& 输入)
-			{
-				for (const String& 字符串 : 输入)
-				{
-					输出++->resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
-						{
-							return WCTMB((wchar_t*)字符串.data(), 字符串.size(), 指针, 尺寸) - 1;
-						});
-				}
-			}
-			template<typename T>
-				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
-			void operator()(T&& 输入)
-			{
-				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
-			}
-		};
-		template<迭代器值类型是<std::string>迭代器>
-		class 迭代MC<const 迭代器>
-		{
-			迭代器 输出;
-		public:
-			迭代MC(const 迭代器& 输出) :输出(输出) {}
+			迭代MC(迭代器 输出) :输出(std::forward<迭代器>(输出)) {}
 			void operator()(CharArray&& 输入)
 			{
 				const int 长度 = 输入.getNumberOfElements();
@@ -614,10 +483,12 @@ namespace Mex工具
 					{
 						return WCTMB(宽指针, 长度, 指针, 尺寸) - 1;
 					});
+				if constexpr (迭代器输出)
+					++输出;
 			}
 			void operator()(const CellArray& 输入)
 			{
-				for (CharArray& a : 输入)
+				for (CharArray a : 输入)
 				{
 					const int 长度 = a.getNumberOfElements();
 					输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)a.release().get(), 长度](char* 指针, size_t 尺寸)
@@ -640,54 +511,16 @@ namespace Mex工具
 				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
 			void operator()(T&& 输入)
 			{
-				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
+				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))));
 			}
 		};
 		template<迭代器值类型是<std::wstring>迭代器>
 		class 迭代MC<迭代器>
 		{
-			迭代器& 输出;
+			static constexpr bool 迭代器输出 = std::is_lvalue_reference_v<迭代器>;
+			std::conditional_t<迭代器输出, 迭代器, std::remove_cvref_t<迭代器>> 输出;
 		public:
-			迭代MC(迭代器& 输出) :输出(输出) {}
-			void operator()(const CharArray& 输入)
-			{
-				输出++->resize_and_overwrite(输入.getNumberOfElements(), [&输入](wchar_t* 指针, size_t 尺寸)
-					{
-						std::copy(输入.cbegin(), 输入.cend(), 指针);
-						return 输入.getNumberOfElements();
-					});
-			}
-			void operator()(const CellArray& 输入)
-			{
-				for (CharArray a : 输入)
-					输出++->resize_and_overwrite(a.getNumberOfElements(), [&a](wchar_t* 指针, size_t 尺寸)
-						{
-							std::copy(a.cbegin(), a.cend(), 指针);
-							return a.getNumberOfElements();
-						});
-			}
-			void operator()(const StringArray& 输入)
-			{
-				for (String a : 输入)
-					输出++->resize_and_overwrite(a.size(), [&a](wchar_t* 指针, size_t 尺寸)
-						{
-							std::copy(a.cbegin(), a.cend(), 指针);
-							return a.size();
-						});
-			}
-			template<typename T>
-				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
-			void operator()(T&& 输入)
-			{
-				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
-			}
-		};
-		template<迭代器值类型是<std::wstring>迭代器>
-		class 迭代MC<const 迭代器>
-		{
-			迭代器 输出;
-		public:
-			迭代MC(const 迭代器& 输出) :输出(输出) {}
+			迭代MC(迭代器 输出) :输出(std::forward<迭代器>(输出)) {}
 			void operator()(const CharArray& 输入)
 			{
 				输出->resize_and_overwrite(输入.getNumberOfElements(), [&输入](wchar_t* 指针, size_t 尺寸)
@@ -695,6 +528,8 @@ namespace Mex工具
 						std::copy(输入.cbegin(), 输入.cend(), 指针);
 						return 输入.getNumberOfElements();
 					});
+				if constexpr (迭代器输出)
+					++输出;
 			}
 			void operator()(const CellArray& 输入)
 			{
@@ -718,7 +553,7 @@ namespace Mex工具
 				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)
 			void operator()(T&& 输入)
 			{
-				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))));
+				operator()(StringArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))));
 			}
 		};
 		template<typename T>
@@ -906,5 +741,6 @@ namespace Mex工具
 		using 数值标准化_t = typename 数值标准化<std::remove_cvref_t<T>>::type;
 		template<typename T>
 		concept 可写入UTF8流 = requires(std::ostringstream 流, T 消息) { 流 << 消息; };
+		void CheckLastError(const std::string& identifier);
 	}
 }

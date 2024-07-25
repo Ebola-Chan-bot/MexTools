@@ -23,7 +23,7 @@ namespace Mex工具
 		case ArrayType::CELL:
 			return ((const Array&)输入)[0];
 		default:
-			return 数组工厂.createCharArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0].operator String());
+			return 数组工厂.createCharArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0].operator String());
 		}
 	}
 	template<>
@@ -38,7 +38,7 @@ namespace Mex工具
 		case ArrayType::CELL:
 			return ((const Array&)输入)[0].operator CharArray().toUTF16();
 		default:
-			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0].operator String();
+			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0].operator String();
 		}
 	}
 	template<>
@@ -53,7 +53,7 @@ namespace Mex工具
 		case ArrayType::CELL:
 			return ((const Array&)输入)[0].operator CharArray().toUTF16();
 		default:
-			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0];
+			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0];
 		}
 	}
 	template<>
@@ -91,7 +91,7 @@ namespace Mex工具
 		}
 		break;
 		default:
-			const String 字符串 = MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0];
+			const String 字符串 = MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0];
 			输出.resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
 				{
 					return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.data(), 字符串.size(), 指针, 尺寸, nullptr, nullptr) - 1;
@@ -122,7 +122,7 @@ namespace Mex工具
 			return 输出;
 		}
 		default:
-			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入));
+			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入));
 		}
 	}
 	template<>
@@ -148,7 +148,7 @@ namespace Mex工具
 		}
 		default:
 		{
-			const String 字符串 = MATLAB引擎->feval(MATLAB转换函数<MATLABString>, std::move(输入))[0];
+			const String 字符串 = MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0];
 			return std::wstring((wchar_t*)字符串.data(), 字符串.size());
 		}
 		}
@@ -186,17 +186,30 @@ namespace Mex工具
 		{
 			return WideCharToMultiByte(CP_UTF8, 0, 宽字符串, 宽字符数, 字节缓冲, 缓冲长度, nullptr, nullptr) - 1;
 		}
-	}
-	void CheckLastError(const std::string& identifier)
-	{
-		if (const DWORD 错误码 = GetLastError())
+		void CheckLastError(const std::string& identifier)
 		{
-			LPWSTR 错误信息;
-			FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, 错误码, MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
-			const matlab::engine::MATLABException 异常(identifier, (char16_t*)错误信息);
-			LocalFree(错误信息);
-			throw 异常;
+			if (const DWORD 错误码 = GetLastError())
+			{
+				LPWSTR 错误信息;
+				FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, 错误码, MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
+				const matlab::engine::MATLABException 异常(identifier, (char16_t*)错误信息);
+				LocalFree(错误信息);
+				throw 异常;
+			}
 		}
+		const std::u16string MATLAB转换函数<bool>::value = u"logical";
+		const std::u16string MATLAB转换函数<char16_t>::value = u"char";
+		const std::u16string MATLAB转换函数<MATLABString>::value = u"string";
+		const std::u16string MATLAB转换函数<double>::value = u"double";
+		const std::u16string MATLAB转换函数<float>::value = u"single";
+		const std::u16string MATLAB转换函数<int8_t>::value = u"int8";
+		const std::u16string MATLAB转换函数<int16_t>::value = u"int16";
+		const std::u16string MATLAB转换函数<int32_t>::value = u"int32";
+		const std::u16string MATLAB转换函数<int64_t>::value = u"int64";
+		const std::u16string MATLAB转换函数<uint8_t>::value = u"uint8";
+		const std::u16string MATLAB转换函数<uint16_t>::value = u"uint16";
+		const std::u16string MATLAB转换函数<uint32_t>::value = u"uint32";
+		const std::u16string MATLAB转换函数<uint64_t>::value = u"uint64";
 	}
 	template<typename T>
 	struct 动态类型缓冲模板

@@ -20,7 +20,10 @@ enum class MexTools
 	Cannot_get_pointer_of_SparseArray,
 	Unexpected_SEH_exception,
 	Unexpected_CPP_exception,
-	An_unexpected_error_occurred_while_destroying_an_object
+	Win32_exception,
+	An_unexpected_error_occurred_while_destroying_an_object,
+	Unsupported_scalar_conversion_types,
+	Iterative_conversion_type_not_supported
 };
 namespace Mex工具
 {
@@ -61,14 +64,6 @@ MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型
 		枚举转标识符(异常信息流, 异常);
 		const matlab::data::String 异常信息 = 异常信息流.str();
 		MATLAB引擎->feval("warning", 异常信息, 异常信息);
-	}
-	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常。如果没有错误则不执行任何操作。可选使用指定的 MException identifier
-	void CheckLastError(const std::string& identifier = "MexTools:Win32Exception");
-	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常。如果没有错误则不执行任何操作。可选使用枚举值作为 MException identifier，
-	template<typename T>
-	inline void CheckLastError(T identifier)
-	{
-		CheckLastError(magic_enum::enum_name(identifier));
 	}
 }
 #include "Mex工具.前置.hpp"
@@ -317,7 +312,7 @@ namespace Mex工具
 	template<typename 迭代器>
 	inline void 万能转码(matlab::data::Array&& 输入, 迭代器&& 输出)
 	{
-		matlab::data::apply_visitor(std::move(输入), 内部::迭代MC(std::forward<迭代器>(输出)));
+		matlab::data::apply_visitor(std::move(输入), 内部::迭代MC<迭代器&&>(std::forward<迭代器>(输出)));
 	}
 	/*从迭代器创建具有指定维度的MATLAB满数组。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
 	特别地，如果输出类型是StringArray，迭代器对应的值类型可以是所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型；如果不支持，还可以是任何能被MATLAB转换为string的MATLAB元素对象（如枚举、分类数组或任何实现了string方法的对象等）
@@ -481,6 +476,19 @@ namespace Mex工具
 			(消息流 << ... << 消息);
 			MATLAB引擎->feval("warning", 标识符流.str(), 消息流.str());
 		}
+	}
+	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常。可选使用特定枚举值作为 MException identifier。
+	template<typename T>
+	inline void CheckLastError(T identifier = MexTools::Win32_exception)
+	{
+		内部::CheckLastError(std::string(magic_enum::enum_name(identifier)));
+	}
+	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常，没有错误则抛出枚举值指定的未知原因默认异常。可选使用特定枚举值作为 MException identifier。
+	template<typename T>
+	[[noreturn]] inline void ThrowLastError(T identifier = MexTools::Win32_exception)
+	{
+		内部::CheckLastError(std::string(magic_enum::enum_name(identifier)));
+		EnumThrow(identifier);
 	}
 }
 #include"Mex工具.后置.hpp"
