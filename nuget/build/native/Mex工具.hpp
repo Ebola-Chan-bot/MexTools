@@ -470,11 +470,13 @@ namespace Mex工具
 			MATLAB引擎->feval("warning", 标识符流.str(), 消息流.str());
 		}
 	}
+	//将Windows错误代码转换为消息字符串
+	std::unique_ptr<char16_t[], void* (*)(void*)> WindowsErrorMessage(int ExceptionCode)noexcept;
 	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常，没有错误则抛出枚举值指定的未知原因默认异常。模板参数可选指定标识符是否添加到消息。可选使用特定枚举值作为 MException identifier。可选输入其它补充消息。
 	template<bool 将标识符添加到消息 = true, typename 标识符类型, typename...消息类型>
 	[[noreturn]] inline void ThrowLastError(标识符类型 identifier = MexTools::Win32_exception, 消息类型...消息)
 	{
-		EnumThrow<将标识符添加到消息>(identifier, 内部::LastErrorMessage().get(), 消息...);
+		EnumThrow<将标识符添加到消息>(identifier, WindowsErrorMessage(GetLastError()).get(), 消息...);
 	}
 }
 #include"Mex工具.3.hpp"

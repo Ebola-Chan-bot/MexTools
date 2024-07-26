@@ -186,12 +186,6 @@ namespace Mex工具
 		{
 			return WideCharToMultiByte(CP_UTF8, 0, 宽字符串, 宽字符数, 字节缓冲, 缓冲长度, nullptr, nullptr) - 1;
 		}
-		std::unique_ptr<char16_t[], decltype(LocalFree)*> LastErrorMessage()
-		{
-			LPWSTR 错误信息;
-			FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, GetLastError(), MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
-			return std::unique_ptr<char16_t[], decltype(LocalFree)*>((char16_t*)错误信息, LocalFree);
-		}
 		const std::u16string MATLAB转换函数<bool>::value = u"logical";
 		const std::u16string MATLAB转换函数<char16_t>::value = u"char";
 		const std::u16string MATLAB转换函数<MATLABString>::value = u"string";
@@ -205,6 +199,12 @@ namespace Mex工具
 		const std::u16string MATLAB转换函数<uint16_t>::value = u"uint16";
 		const std::u16string MATLAB转换函数<uint32_t>::value = u"uint32";
 		const std::u16string MATLAB转换函数<uint64_t>::value = u"uint64";
+	}
+	std::unique_ptr<char16_t[], decltype(LocalFree)*> WindowsErrorMessage(int ExceptionCode)noexcept
+	{
+		LPWSTR 错误信息;
+		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, GetLastError(), MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
+		return std::unique_ptr<char16_t[], decltype(LocalFree)*>((char16_t*)错误信息, LocalFree);
 	}
 	template<typename T>
 	struct 动态类型缓冲模板

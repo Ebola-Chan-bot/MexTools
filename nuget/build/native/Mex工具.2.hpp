@@ -741,6 +741,5 @@ namespace Mex工具
 		using 数值标准化_t = typename 数值标准化<std::remove_cvref_t<T>>::type;
 		template<typename T>
 		concept 可写入UTF8流 = requires(std::ostringstream 流, T 消息) { 流 << 消息; };
-		std::unique_ptr<char16_t[], void*(*)(void*)> LastErrorMessage();
 	}
 }
