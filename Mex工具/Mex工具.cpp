@@ -206,6 +206,10 @@ namespace Mex工具
 		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, GetLastError(), MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
 		return std::unique_ptr<char16_t[], decltype(LocalFree)*>((char16_t*)错误信息, LocalFree);
 	}
+	std::unique_ptr<char16_t[], decltype(LocalFree)*> WindowsErrorMessage()noexcept
+	{
+		return WindowsErrorMessage(GetLastError());
+	}
 	template<typename T>
 	struct 动态类型缓冲模板
 	{
@@ -227,6 +231,10 @@ namespace Mex工具
 		{
 			return new 动态类型缓冲模板(数组工厂.createBuffer<T>(元素数));
 		}
+		static 动态类型缓冲* value(Array&& 数组)
+		{
+			return new 动态类型缓冲模板(TypedArray<T>(std::move(数组)).release());
+		}
 		Array 创建数组(ArrayDimensions&& 各维尺寸)noexcept override
 		{
 			return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), std::move(静态类型缓冲));
@@ -236,6 +244,10 @@ namespace Mex工具
 	std::unique_ptr<动态类型缓冲>动态类型缓冲::创建(matlab::data::ArrayType 类型, size_t 元素数)
 	{
 		return std::unique_ptr<动态类型缓冲>(动态类型选择模板<动态类型缓冲模板>(类型, 元素数));
+	}
+	std::unique_ptr<动态类型缓冲>动态类型缓冲::创建(matlab::data::Array&&数组)
+	{
+		return std::unique_ptr<动态类型缓冲>(动态类型选择模板<动态类型缓冲模板>(数组.getType(), std::move(数组)));
 	}
 }
 using namespace Mex工具;

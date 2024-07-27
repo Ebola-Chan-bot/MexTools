@@ -78,6 +78,7 @@ namespace Mex工具
 		template<typename T>struct 数组类型转元素_s;
 		template<typename T>struct 数组类型转元素_s<TypedArray<T>> { using type = T; };
 		template<typename T>struct 数组类型转元素_s<SparseArray<T>> { using type = T; };
+		template<>struct 数组类型转元素_s<CharArray> { using type = char16_t; };//CharArray继承自而不是TypedArray<char16_t>，所以还是需要单独特化
 		template<ArrayType T>struct 动态类型转静态_s { using type = void; };
 		template<>struct 动态类型转静态_s<ArrayType::LOGICAL> { using type = bool; };
 		template<>struct 动态类型转静态_s<ArrayType::CHAR> { using type = CHAR16_T; };

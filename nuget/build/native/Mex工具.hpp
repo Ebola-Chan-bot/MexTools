@@ -372,10 +372,13 @@ namespace Mex工具
 	//检查对象指针是否存在于自动析构表中。如不存在，此指针可能是无效的，或者创建时未加入自动析构表。
 	bool 对象存在(void* 对象指针)noexcept;
 
-	//动态类型缓冲，可用于创建动态类型MATLAB数组。使用静态方法`创建`获取指针。创建后，向`get()`返回的指针写入数据，然后调用`创建数组`以创建MATLAB数组。创建数组后，缓冲将被释放，不再可用。
+	//动态类型缓冲，可用于创建动态类型MATLAB数组，或者从动态类型数组获取无类型指针。使用静态方法`创建`获取指针。创建后，向`get()`返回的指针读写数据，然后调用`创建数组`以创建MATLAB数组。创建数组后，缓冲将被释放，不再可用。
 	struct 动态类型缓冲
 	{
+		//根据动态类型和元素数创建缓冲
 		static std::unique_ptr<动态类型缓冲> 创建(matlab::data::ArrayType 类型, size_t 元素数);
+		//将MATLAB动态类型数组解包为无类型缓冲
+		static std::unique_ptr<动态类型缓冲> 创建(matlab::data::Array&& 数组);
 		virtual void* get()const noexcept = 0;
 		virtual matlab::data::Array 创建数组(matlab::data::ArrayDimensions&& 各维尺寸)noexcept = 0;
 		virtual ~动态类型缓冲() {}
@@ -472,11 +475,13 @@ namespace Mex工具
 	}
 	//将Windows错误代码转换为消息字符串
 	std::unique_ptr<char16_t[], void* (*)(void*)> WindowsErrorMessage(int ExceptionCode)noexcept;
+	//自动获取上一个Windows错误代码，转换为消息字符串。
+	std::unique_ptr<char16_t[], void* (*)(void*)> WindowsErrorMessage()noexcept;
 	//检查 Win32 GetLastError()，如果有错误则抛出MATLAB异常，没有错误则抛出枚举值指定的未知原因默认异常。模板参数可选指定标识符是否添加到消息。可选使用特定枚举值作为 MException identifier。可选输入其它补充消息。
 	template<bool 将标识符添加到消息 = true, typename 标识符类型, typename...消息类型>
 	[[noreturn]] inline void ThrowLastError(标识符类型 identifier = MexTools::Win32_exception, 消息类型...消息)
 	{
-		EnumThrow<将标识符添加到消息>(identifier, WindowsErrorMessage(GetLastError()).get(), 消息...);
+		EnumThrow<将标识符添加到消息>(identifier, WindowsErrorMessage().get(), 消息...);
 	}
 }
 #include"Mex工具.3.hpp"
