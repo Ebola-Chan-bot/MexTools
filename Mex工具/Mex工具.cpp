@@ -1,5 +1,7 @@
-#include "Mex工具.hpp"
+//这两个顺序不能反，Mex工具会根据是否已定义__MEX_IO_ADAPTER_HPP__来决定要不要定义MexIORange
 #include <mexAdapter.hpp>
+#include "Mex工具.hpp"
+
 #include <Windows.h>
 import std;
 #pragma comment(lib,"libMatlabDataArray.lib")
