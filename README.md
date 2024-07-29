@@ -23,7 +23,7 @@ void Mex工具::清理()noexcept{}
 ```
 不需要执行任何代码的函数可以留空定义。生成。将生成的.mexw64文件置于MATLAB搜索目录中即可调用。
 # 进阶使用
-本工具所有高级功能都在<Mex工具.hpp\>中详述。此处作简要介绍。
+本工具所有高级功能都在<Mex工具.hpp\>中详述。此处作简要介绍。代码示例可参考[埃博拉酱的MATLAB扩展](https://github.com/Silver-Fang/MATLAB-Extension)
 ## 异常处理
 MATLAB只能捕获`std::exception`派生的异常。将非继承自`std::exception`的异常抛出时，将丢失异常详细信息。MATLAB会将异常抛出为`MException`类型，所有异常详细信息都包含在此类型的`identifier`和`message`两个属性中。根据你的需求，本工具提供了以下异常处理方法可选：
 - `EnumThrow`。使用此方法要求你将所有可能的异常列举为一个`enum class`，并且从命名空间、类型名到枚举项名称都只能包含英文和数字，因为这些文本都会被`EnumThrow`转换为MATLAB`MException.identifier`，MATLAB要求此字段只能包含英文和数字。除此之外，`EnumThrow`还可以设置`MException.message`。
