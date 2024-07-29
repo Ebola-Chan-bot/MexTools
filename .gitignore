@@ -368,3 +368,5 @@ FodyWeavers.xsd
 *.ifcast
 *.ixx.*
 *.ifc.*
+
+nuget/README.md
