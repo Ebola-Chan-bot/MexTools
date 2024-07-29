@@ -15,37 +15,31 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\nuget\build\native\include\Mex工具.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\nuget\build\native\include\Mex类型.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\nuget\build\native\include\Mex实现.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Mex工具.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Mex实现.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Mex类型.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="lib\libMatlabDataArray.lib" />
-    <Library Include="lib\libmex.lib" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="cpp.hint" />
     <None Include="..\nuget\build\native\MATLAB.MexTools.targets" />
     <None Include="..\nuget\MATLAB.MexTools.nuspec" />
     <None Include="..\.gitignore" />
     <None Include="..\README.md" />
     <None Include="..\NuGet打包.ps1" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Mex工具.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\nuget\build\native\Mex工具.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nuget\build\native\Mex工具.3.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nuget\build\native\Mex工具.2.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nuget\build\native\Mex工具.1.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

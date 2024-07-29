@@ -42,15 +42,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -69,17 +69,25 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <MatlabExtern>$([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").GetValue($([MSBuild]::Subtract($([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").Length), 1))))</MatlabExtern>
+    <MatlabExtern>$(MatlabExtern)\extern\</MatlabExtern>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
+    <OutDir>$(SolutionDir)nuget\build\native\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
-    <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)..\nuget\build\native;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    <ExternalIncludePath>$(MatlabExtern)include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(MatlabExtern)lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ExternalIncludePath>$(ExternalIncludePath)</ExternalIncludePath>
-    <OutDir>$(ProjectDir)..\nuget\build\native\lib\</OutDir>
+    <OutDir>$(SolutionDir)nuget\build\native\</OutDir>
     <TargetName>$(ProjectName).$(PlatformToolsetVersion).$(Configuration)</TargetName>
-    <IncludePath>$(ProjectDir)..\nuget\build\native\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>$(ProjectDir)..\nuget\build\native;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    <ExternalIncludePath>$(MatlabExtern)include;$(ExternalIncludePath)</ExternalIncludePath>
+    <LibraryPath>$(MatlabExtern)lib\win64\microsoft;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -118,7 +126,6 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);_DEBUG</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -129,19 +136,25 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <EnableModules>true</EnableModules>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BuildStlModules>true</BuildStlModules>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);NDEBUG</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -153,6 +166,9 @@
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <EnableModules>true</EnableModules>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <BuildStlModules>true</BuildStlModules>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -161,21 +177,11 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\nuget\build\native\include\Mex实现.h" />
-    <ClInclude Include="..\nuget\build\native\include\Mex工具.h" />
-    <ClInclude Include="..\nuget\build\native\include\Mex类型.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Mex实现.cpp" />
-    <ClCompile Include="Mex工具.cpp" />
-    <ClCompile Include="Mex类型.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="lib\libMatlabDataArray.lib" />
-    <Library Include="lib\libmex.lib" />
-  </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />
     <None Include="..\nuget\build\native\MATLAB.MexTools.targets" />
@@ -183,8 +189,25 @@
     <None Include="..\NuGet打包.ps1" />
     <None Include="..\README.md" />
     <None Include="cpp.hint" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Mex工具.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\nuget\build\native\Mex工具.1.hpp" />
+    <ClInclude Include="..\nuget\build\native\Mex工具.hpp" />
+    <ClInclude Include="..\nuget\build\native\Mex工具.2.hpp" />
+    <ClInclude Include="..\nuget\build\native\Mex工具.3.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\native.magic_enum.0.9.5\build\native\native.magic_enum.targets" Condition="Exists('..\packages\native.magic_enum.0.9.5\build\native\native.magic_enum.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\native.magic_enum.0.9.5\build\native\native.magic_enum.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\native.magic_enum.0.9.5\build\native\native.magic_enum.targets'))" />
+  </Target>
 </Project>

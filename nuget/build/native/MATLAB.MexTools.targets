@@ -1,28 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup>
+		
+		<MexTools_MatlabExtern>$([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").GetValue($([MSBuild]::Subtract($([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").Length), 1))))\extern\</MexTools_MatlabExtern>
+		<!--这句使用了.GetValue()而不是方括号索引，因为方括号索引中不能调用属性函数-->
+		
+		<MexTools_MatlabLib>$(MexTools_MatlabExtern)lib\win64\microsoft\</MexTools_MatlabLib>
+		<!--必须创建新属性，不能在使用后覆盖MatlabExtern。因为XML不保证运行顺序。-->
+		
+		<TargetExt>.mexw64</TargetExt>
+		<MexTools_Configuration>Release</MexTools_Configuration>
+		<MexTools_Configuration Condition="$(UseDebugLibraries)">Debug</MexTools_Configuration>
+	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<ClCompile>
-			<AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>$(MexTools_MatlabExtern)include;$(MSBuildThisFileDirectory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<LanguageStandard>stdcpplatest</LanguageStandard>
+			<SDLCheck>false</SDLCheck>
 		</ClCompile>
 		<ResourceCompile>
-			<AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>$(MexTools_MatlabExtern)include;$(MSBuildThisFileDirectory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<LanguageStandard>stdcpplatest</LanguageStandard>
+			<SDLCheck>false</SDLCheck>
 		</ResourceCompile>
 	</ItemDefinitionGroup>
-	<Choose>
-		<!-- UseDebugLibraries is described in {VS2022}\Msbuild\Microsoft\VC\v170\1033\general_advanced.xml -->
-		<When Condition="$(UseDebugLibraries)">
-			<ItemDefinitionGroup>
-				<Link>
-					<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
-				</Link>
-			</ItemDefinitionGroup>
-		</When>
-		<Otherwise>
-			<ItemDefinitionGroup>
-				<Link>
-					<AdditionalDependencies>$(MSBuildThisFileDirectory)lib\Mex工具.$(PlatformToolsetVersion).Release.lib;%(AdditionalDependencies)</AdditionalDependencies>
-				</Link>
-			</ItemDefinitionGroup>
-		</Otherwise>
-	</Choose>
+	<ItemDefinitionGroup>
+		<Link>
+			<AdditionalDependencies>$(MexTools_MatlabLib)libMatlabDataArray.lib;$(MexTools_MatlabLib)libmex.lib;$(MSBuildThisFileDirectory)Mex工具.$(PlatformToolsetVersion).$(MexTools_Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
+		</Link>
+	</ItemDefinitionGroup>
 </Project>

@@ -17,9 +17,9 @@
 mono_crash.*
 
 # Build results
-[Dd]ebug/
+# [Dd]ebug 需要保留里面的.ifc，不能忽略
 [Dd]ebugPublic/
-[Rr]elease/
+# [Rr]elease 需要保留里面的.ifc，不能忽略
 [Rr]eleases/
 x64/
 x86/
@@ -361,7 +361,12 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-/MexW64Sample.pdb
-/MexW64Sample.lib
-/MexW64Sample.exp
+# MATLAB临时文件
 *.asv
+
+# 可以自动生成的模块编译文件。注意，*.ifc不能自动生成，只能在新建ixx时生成，所以不能被忽略。
+*.ifcast
+*.ixx.*
+*.ifc.*
+
+nuget/README.md
