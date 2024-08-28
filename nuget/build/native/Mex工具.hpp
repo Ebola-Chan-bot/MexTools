@@ -176,10 +176,10 @@ namespace Mex工具
 
 	//将给定指针直接作为指定MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
 	template<typename 输出类型>
-	inline 输出类型 万能转码(数组类型转元素<输出类型>* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t 自定义删除器);
+	inline 输出类型 万能转码(数组类型转元素<输出类型>* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t<void> 自定义删除器);
 
 	//将给定指针直接作为动态类型MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
-	inline matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, void* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t 自定义删除器);
+	inline matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, void* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t<void> 自定义删除器);
 
 	//自动析构
 

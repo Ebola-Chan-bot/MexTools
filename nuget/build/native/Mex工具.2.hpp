@@ -669,7 +669,7 @@ namespace Mex工具
 		template<typename T>
 		struct 指针转动态数组
 		{
-			[[noreturn]]static Array value(ArrayDimensions&& 各维尺寸, void* 指针, buffer_deleter_t 自定义删除器)
+			[[noreturn]]static Array value(ArrayDimensions&& 各维尺寸, void* 指针, buffer_deleter_t<void> 自定义删除器)
 			{
 				EnumThrow(MexTools::Unsupported_type);
 			}
@@ -678,9 +678,9 @@ namespace Mex工具
 			requires requires{std::declval<matlab::data::buffer_ptr_t<T>>(); }
 		struct 指针转动态数组<T>
 		{
-			static Array value(ArrayDimensions&& 各维尺寸, void* 指针, buffer_deleter_t 自定义删除器)
+			static Array value(ArrayDimensions&& 各维尺寸, void* 指针, buffer_deleter_t<void> 自定义删除器)
 			{
-				return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<T>((T*)指针, 自定义删除器));
+				return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), buffer_ptr_t<T>(reinterpret_cast<T*>(指针), reinterpret_cast<buffer_deleter_t<T>>(自定义删除器)));
 			}
 		};
 		template<typename T>

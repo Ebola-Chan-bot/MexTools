@@ -222,11 +222,11 @@ namespace Mex工具
 		return 动态类型选择模板<内部::动态CM>(元素类型, std::forward<迭代器>(输入), std::move(各维尺寸));
 	}
 	template<typename 输出类型>
-	inline 输出类型 万能转码(数组类型转元素<输出类型>* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t 自定义删除器)
+	inline 输出类型 万能转码(数组类型转元素<输出类型>* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t<void> 自定义删除器)
 	{
 		return 数组工厂.createArrayFromBuffer(std::move(各维尺寸), matlab::data::buffer_ptr_t<数组类型转元素<输出类型>>(输入, 自定义删除器));
 	}
-	inline matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, void* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t 自定义删除器)
+	inline matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, void* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t<void> 自定义删除器)
 	{
 		return 动态类型选择模板<内部::指针转动态数组>(元素类型, std::move(各维尺寸), 输入, 自定义删除器);
 	}
