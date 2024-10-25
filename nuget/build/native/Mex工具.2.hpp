@@ -373,7 +373,7 @@ namespace Mex工具
 				requires requires {GetSparseArrayType<值类型>::type; }
 			void operator()(SparseArray<T>&& 输入)
 			{
-				operator()(TypedArray<值类型>(MATLAB引擎->feval(MATLAB转换函数<值类型>, MATLAB引擎->feval("full", std::move(输入)))));
+				operator()(TypedArray<值类型>(MATLAB引擎->feval(MATLAB转换函数<值类型>::value, MATLAB引擎->feval("full", std::move(输入)))));
 			}
 			template<typename T>
 			void operator()(T 输入)
