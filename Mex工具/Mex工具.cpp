@@ -21,9 +21,9 @@ namespace Mex工具
 		case ArrayType::CHAR:
 			return std::move(输入);
 		case ArrayType::MATLAB_STRING:
-			return 数组工厂.createCharArray(((const Array&)输入)[0].operator String());
+			return 数组工厂.createCharArray(reinterpret_cast<const Array&>(输入)[0].operator String());
 		case ArrayType::CELL:
-			return ((const Array&)输入)[0];
+			return reinterpret_cast<const Array&>(输入)[0];
 		default:
 			return 数组工厂.createCharArray(MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0].operator String());
 		}
@@ -36,9 +36,9 @@ namespace Mex工具
 		case ArrayType::CHAR:
 			return CharArray(std::move(输入)).toUTF16();
 		case ArrayType::MATLAB_STRING:
-			return ((const Array&)输入)[0].operator String();
+			return reinterpret_cast<const Array&>(输入)[0].operator String();
 		case ArrayType::CELL:
-			return ((const Array&)输入)[0].operator CharArray().toUTF16();
+			return reinterpret_cast<const Array&>(输入)[0].operator CharArray().toUTF16();
 		default:
 			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0].operator String();
 		}
@@ -51,9 +51,9 @@ namespace Mex工具
 		case ArrayType::CHAR:
 			return CharArray(std::move(输入)).toUTF16();
 		case ArrayType::MATLAB_STRING:
-			return ((const Array&)输入)[0];
+			return reinterpret_cast<const Array&>(输入)[0];
 		case ArrayType::CELL:
-			return ((const Array&)输入)[0].operator CharArray().toUTF16();
+			return reinterpret_cast<const Array&>(输入)[0].operator CharArray().toUTF16();
 		default:
 			return MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0];
 		}
@@ -65,39 +65,39 @@ namespace Mex工具
 		switch (输入.getType())
 		{
 		case ArrayType::CHAR:
-		{
-			const int 长度 = 输入.getNumberOfElements();
-			输出.resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)CharArray(std::move(输入)).release().get(), 长度](char* 指针, size_t 尺寸)
-				{
-					return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr) - 1;
-				});
-		}
-		break;
+			if (const int 长度 = 输入.getNumberOfElements())
+				输出.resize_and_overwrite((长度 + 1) * 3, [宽指针 = reinterpret_cast<wchar_t*>(CharArray(std::move(输入)).release().get()), 长度](char* 指针, size_t 尺寸)
+					{
+						return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr);
+					});
+			break;
 		case ArrayType::MATLAB_STRING:
 		{
-			const String 字符串 = ((const Array&)输入)[0];
-			输出.resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
-				{
-					return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.data(), 字符串.size(), 指针, 尺寸, nullptr, nullptr) - 1;
-				});
+			const String 字符串 = reinterpret_cast<const Array&>(输入)[0];
+			if (字符串.size())
+				输出.resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
+					{
+						return WideCharToMultiByte(CP_UTF8, 0, reinterpret_cast<const wchar_t*>(字符串.data()), 字符串.size(), 指针, 尺寸, nullptr, nullptr);
+					});
 		}
 		break;
 		case ArrayType::CELL:
 		{
-			CharArray 字符数组 = ((const Array&)输入)[0];
-			const int 长度 = 字符数组.getNumberOfElements();
-			输出.resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)字符数组.release().get(), 长度](char* 指针, size_t 尺寸)
-				{
-					return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr) - 1;
-				});
+			CharArray 字符数组 = reinterpret_cast<const Array&>(输入)[0];
+			if (const int 长度 = 字符数组.getNumberOfElements())
+				输出.resize_and_overwrite((长度 + 1) * 3, [宽指针 = reinterpret_cast<wchar_t*>(字符数组.release().get()), 长度](char* 指针, size_t 尺寸)
+					{
+						return WideCharToMultiByte(CP_UTF8, 0, 宽指针, 长度, 指针, 尺寸, nullptr, nullptr);
+					});
 		}
 		break;
 		default:
 			const String 字符串 = MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0];
-			输出.resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
-				{
-					return WideCharToMultiByte(CP_UTF8, 0, (wchar_t*)字符串.data(), 字符串.size(), 指针, 尺寸, nullptr, nullptr) - 1;
-				});
+			if (字符串.size())
+				输出.resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
+					{
+						return WideCharToMultiByte(CP_UTF8, 0, reinterpret_cast<const wchar_t*>(字符串.data()), 字符串.size(), 指针, 尺寸, nullptr, nullptr);
+					});
 			break;
 		}
 		return 输出;
@@ -120,7 +120,7 @@ namespace Mex工具
 			StringArray 输出 = 数组工厂.createArray<MATLABString>(输入.getDimensions());
 			const size_t 元素个数 = 输入.getNumberOfElements();
 			for (size_t a = 0; a < 元素个数; ++a)
-				输出[a] = ((const Array&)输入)[a].operator CharArray().toUTF16();
+				输出[a] = reinterpret_cast<const Array&>(输入)[a].operator CharArray().toUTF16();
 			return 输出;
 		}
 		default:
@@ -135,23 +135,23 @@ namespace Mex工具
 		case ArrayType::CHAR:
 		{
 			const size_t 长度 = 输入.getNumberOfElements();
-			return std::wstring((wchar_t*)CharArray(std::move(输入)).release().get(), 长度);
+			return std::wstring(reinterpret_cast<wchar_t*>(CharArray(std::move(输入)).release().get()), 长度);
 		}
 		case ArrayType::MATLAB_STRING:
 		{
-			const String 字符串 = ((const Array&)输入)[0];
-			return std::wstring((wchar_t*)字符串.data(), 字符串.size());
+			const String 字符串 = reinterpret_cast<const Array&>(输入)[0];
+			return std::wstring(reinterpret_cast<const wchar_t*>(字符串.data()), 字符串.size());
 		}
 		case ArrayType::CELL:
 		{
-			CharArray 字符数组 = ((const Array&)输入)[0];
+			CharArray 字符数组 = reinterpret_cast<const Array&>(输入)[0];
 			const size_t 长度 = 字符数组.getNumberOfElements();
-			return std::wstring((wchar_t*)字符数组.release().get(), 长度);
+			return std::wstring(reinterpret_cast<wchar_t*>(字符数组.release().get()), 长度);
 		}
 		default:
 		{
 			const String 字符串 = MATLAB引擎->feval(MATLAB转换函数<MATLABString>::value, std::move(输入))[0];
-			return std::wstring((wchar_t*)字符串.data(), 字符串.size());
+			return std::wstring(reinterpret_cast<const wchar_t*>(字符串.data()), 字符串.size());
 		}
 		}
 	}
@@ -172,7 +172,7 @@ namespace Mex工具
 		CharArray 标量转换<CharArray>::转换(const char* 输入, size_t 长度)
 		{
 			matlab::data::buffer_ptr_t<char16_t> 缓冲 = 数组工厂.createBuffer<char16_t>(长度 + 1);
-			长度 = MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)缓冲.get(), 长度 + 1);
+			长度 = MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, reinterpret_cast<wchar_t*>(缓冲.get()), 长度 + 1);
 			return 数组工厂.createArrayFromBuffer({ 1,长度 }, std::move(缓冲));
 		}
 		String 标量转换<String>::转换(const char* 输入, size_t 长度)
@@ -180,13 +180,13 @@ namespace Mex工具
 			String 返回;
 			返回.resize_and_overwrite(长度 + 1, [输入, 长度](char16_t* 指针, size_t 尺寸)
 				{
-					return MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, (wchar_t*)指针, 尺寸);
+					return MultiByteToWideChar(CP_UTF8, 0, 输入, 长度, reinterpret_cast<wchar_t*>(指针), 尺寸);
 				});
 			return 返回;
 		}
 		int WCTMB(const wchar_t* 宽字符串, int 宽字符数, char* 字节缓冲, int 缓冲长度)
 		{
-			return WideCharToMultiByte(CP_UTF8, 0, 宽字符串, 宽字符数, 字节缓冲, 缓冲长度, nullptr, nullptr) - 1;
+			return WideCharToMultiByte(CP_UTF8, 0, 宽字符串, 宽字符数, 字节缓冲, 缓冲长度, nullptr, nullptr);
 		}
 		const std::u16string MATLAB转换函数<bool>::value = u"logical";
 		const std::u16string MATLAB转换函数<char16_t>::value = u"char";
@@ -206,7 +206,7 @@ namespace Mex工具
 	{
 		LPWSTR 错误信息;
 		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, GetLastError(), MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
-		return std::unique_ptr<char16_t[], decltype(LocalFree)*>((char16_t*)错误信息, LocalFree);
+		return std::unique_ptr<char16_t[], decltype(LocalFree)*>(reinterpret_cast<char16_t*>(错误信息), LocalFree);
 	}
 	std::unique_ptr<char16_t[], decltype(LocalFree)*> WindowsErrorMessage()noexcept
 	{
@@ -259,7 +259,7 @@ static void SEH处理(DWORD 错误代码)
 	LPWSTR 错误信息;
 	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, 错误代码, MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
 	const std::unique_ptr<wchar_t, decltype(&LocalFree)> 错误信息指针(错误信息, LocalFree);
-	throw matlab::engine::MATLABException("MexTools:Unexpected_SEH_exception", (char16_t*)错误信息);
+	throw matlab::engine::MATLABException("MexTools:Unexpected_SEH_exception", reinterpret_cast<char16_t*>(错误信息));
 }
 static void SEH安全(const std::move_only_function<void()const>& 函数)
 {

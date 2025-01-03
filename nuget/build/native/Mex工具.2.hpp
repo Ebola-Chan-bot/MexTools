@@ -479,34 +479,37 @@ namespace Mex工具
 			迭代MC(迭代器 输出) :输出(std::forward<迭代器>(输出)) {}
 			void operator()(CharArray&& 输入)
 			{
-				const int 长度 = 输入.getNumberOfElements();
-				输出->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)CharArray(std::move(输入)).release().get(), 长度](char* 指针, size_t 尺寸)
-					{
-						return WCTMB(宽指针, 长度, 指针, 尺寸) - 1;
-					});
+				if (const int 长度 = 输入.getNumberOfElements())
+					输出->resize_and_overwrite((长度 + 1) * 3, [宽指针 = reinterpret_cast<wchar_t*>(CharArray(std::move(输入)).release().get()), 长度](char* 指针, size_t 尺寸)
+						{
+							return WCTMB(宽指针, 长度, 指针, 尺寸);
+						});
+				else
+					输出->clear();
 				if constexpr (迭代器输出)
 					++输出;
 			}
 			void operator()(const CellArray& 输入)
 			{
 				for (CharArray a : 输入)
-				{
-					const int 长度 = a.getNumberOfElements();
-					输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = (wchar_t*)a.release().get(), 长度](char* 指针, size_t 尺寸)
-						{
-							return WCTMB(宽指针, 长度, 指针, 尺寸) - 1;
-						});
-				}
+					if (const int 长度 = a.getNumberOfElements())
+						输出++->resize_and_overwrite((长度 + 1) * 3, [宽指针 = reinterpret_cast<wchar_t*>(a.release().get()), 长度](char* 指针, size_t 尺寸)
+							{
+								return WCTMB(宽指针, 长度, 指针, 尺寸);
+							});
+					else
+						输出++->clear();
 			}
 			void operator()(const StringArray& 输入)
 			{
 				for (const String& 字符串 : 输入)
-				{
-					输出++->resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
-						{
-							return WCTMB((wchar_t*)字符串.data(), 字符串.size(), 指针, 尺寸) - 1;
-						});
-				}
+					if (字符串.empty())
+						输出++->clear();
+					else
+						输出++->resize_and_overwrite((字符串.size() + 1) * 3, [&字符串](char* 指针, size_t 尺寸)
+							{
+								return WCTMB(reinterpret_cast<const wchar_t*>(字符串.data()), 字符串.size(), 指针, 尺寸);
+							});
 			}
 			template<typename T>
 				requires (!_Is_any_of_v<T, CharArray, CellArray, StringArray>)

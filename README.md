@@ -33,8 +33,79 @@ MATLAB只能捕获`std::exception`派生的异常。将非继承自`std::excepti
 - 意外的异常。本工具提供了兜底保护机制，可以捕获大多数未被正确处理的意外异常，而不至于使MATLAB进程崩溃；但这种机制可能丢失异常详细信息，因此多数情况下您仍应有意识地妥善处理各种意外情况。但是有两种已知情况的异常无法捕获，将导致MATLAB进程崩溃：一是违反noexcept约定抛出的异常，C\++标准规定这将导致进程崩溃，无法捕获；二是在C\++标准异常处理块以外的空`throw`，同样C++标准规定这将导致进程崩溃。
 ## 数据交换
 MEX文件函数最基本的工作就是将MATLAB数据类型转换为C++数据类型，完成处理后再转回MATLAB数据类型。提供了以下强有力的工具：
-- `万能转码`。本工具提供了多种万能转码的重载和模板，几乎可以覆盖所有的MATLAB与C\++数据类型相互转换任务，无论是标量转换、数组和迭代器转换还是字符串编码转换。使用时需要注意，MATLAB `Array`转C\++时，通常都需要使用`std::move`将数组转换为右值引用，转换后原数组对象将变成不可用。此外，MATLAB使用的字符（串）是UTF16编码的char16_t类型，本工具可以自动转换，请勿不经转码直接使用指针拷贝。
-- `动态类型缓冲`。有时你不关心或无法确定运行时MATLAB数组的动态类型，只想要操作`void*`指针，可以使用动态类型缓冲。你可以将一个运行时类型枚举值和元素个数传入，获取一个动态类型的`void*`缓冲（MATLAB提供的方法必须在编译时确定类型）。向缓冲写入数据后，直接打包创建一个无类型的`Array`。反之，也可以将输入的`Array`解包为一个动态类型缓冲，取得其基础数据指针`void*`。
+### 万能转码
+本工具提供了多种万能转码的重载和模板，几乎可以覆盖所有的MATLAB与C\++数据类型相互转换任务，无论是标量转换、数组和迭代器转换还是字符串编码转换。使用时需要注意，MATLAB `Array`转C\++时，通常都需要使用`std::move`将数组转换为右值引用，转换后原数组对象将变成不可用。此外，MATLAB使用的字符（串）是UTF16编码的char16_t类型，本工具可以自动转换，请勿不经转码直接使用指针拷贝。
+```C++
+/*一对一转换。支持以下所有转换：
+将输入MATLAB类型视为标量，转换为C++类型。如果类型不完全匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换；如果还不行，还会尝试调用MATLAB引擎转换。
+将所有能被转换为string的MATLAB类型视为标量，转换为CharArray、MATLABString、String（i.e. std::u16string）、StringArray、std::string或std::wstring。自动执行必要的UTF16到UTF8转换。
+输入右值引用，这意味着转换后输入数组可能不再可用。
+*/
+template<typename 输出>
+inline 输出 万能转码(matlab::data::Array&& 输入);
+
+/*一对一转换。支持以下所有转换：
+将输入C++类型转换为MATLAB标量。如果类型不完全匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换；如果还不行，还会尝试调用MATLAB引擎转换。
+将所有能被MATLAB转换为StringArray的Array类型视为标量，或所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型，转换为CharArray、MATLABString、String（i.e. std::u16string）或StringArray。自动执行必要的UTF8到UTF16转换。
+最好使用std::move输入右值引用。某些转换支持常量引用，某些不支持，可以根据是否能通过编译来判定。
+*/
+template<typename 输出, typename T>
+inline 输出 万能转码(T&& 输入);
+
+//将MATLAB标量元素类型转换为标量数组类型
+template<typename T>
+	requires requires(T&& 输入) { 数组工厂.createScalar<内部::数值标准化_t<T>>(std::move(输入)); }
+inline matlab::data::TypedArray<内部::数值标准化_t<T>>万能转码(T&& 输入);
+
+//将C++指针转换为 MATLAB uint64 标量
+inline matlab::data::TypedArray<size_t>万能转码(const void* 输入);
+
+/*将MATLAB数组拷出到迭代器。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换；如果还不行，还会尝试调用MATLAB引擎转换。
+特别地，所有能被转换为string的MATLAB类型数组可以被拷出到接受CharArray、MATLABString、String（i.e.std::u16string）、std::string或std::wstring的迭代器。自动执行必要的UTF16到UTF8转换。
+特别地，如果迭代器是void*，将被强制转换为指向数组值类型的指针使用。
+特别地，SparseArray将被填充为满数组。
+输入matlab::data::Array右值引用，这意味着转换后输入对象可能不再可用。
+如果输入迭代器的左值引用，函数执行后，迭代器将指向拷出的最后一个元素的下一个位置。如果输入稀疏数组，迭代器必须支持使用operator[]的随机写入方式。
+*/
+template<typename 迭代器>
+inline void 万能转码(matlab::data::Array&& 输入, 迭代器&& 输出);
+
+/*从迭代器创建具有指定维度的MATLAB满数组。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
+特别地，如果输出类型是StringArray，迭代器对应的值类型可以是所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型；如果不支持，还可以是任何能被MATLAB转换为string的MATLAB元素对象（如枚举、分类数组或任何实现了string方法的对象等）
+特别地，如果迭代器是void*，将被强制转换为指向数组值类型的指针使用。
+输入matlab::data::ArrayDimensions右值引用，这意味着转换后输入对象可能不再可用。
+函数执行后，迭代器将指向最后一个元素的下一个位置。
+*/
+template<typename 输出类型, typename 迭代器>
+inline 输出类型 万能转码(迭代器&& 输入, matlab::data::ArrayDimensions&& 各维尺寸);
+
+//从迭代器创建具有迭代器值类型的MATLAB数组。输入matlab::data::ArrayDimensions右值引用，这意味着转换后输入对象可能不再可用。函数执行后，迭代器将指向最后一个元素的下一个位置。
+template<typename 迭代器>
+inline matlab::data::TypedArray<内部::取迭代器值类型<迭代器>>万能转码(迭代器&& 输入, matlab::data::ArrayDimensions&& 各维尺寸);
+
+//从指针迭代器（指迭代器解引用得到指针，迭代器本身不一定是指针）创建具有uint64类型的MATLAB数组。输入matlab::data::ArrayDimensions右值引用，这意味着转换后输入对象可能不再可用。函数执行后，迭代器将指向最后一个元素的下一个位置。
+template<typename 迭代器>
+requires std::is_pointer_v<内部::取迭代器值类型<迭代器>>
+inline matlab::data::TypedArray<size_t>万能转码(迭代器&& 输入, matlab::data::ArrayDimensions&& 各维尺寸);
+
+/*从迭代器创建具有动态类型的MATLAB数组。如果类型不匹配，将优先执行隐式转换；如果不能隐式转换，再尝试显式转换。
+特别地，如果输出类型是ArrayType::MATLAB_STRING，迭代器对应的值类型可以是所有被std::ostringstream::operator<<或std::wostringstream::operator<<支持的类型；如果不支持，还可以是任何能被MATLAB转换为string的MATLAB元素对象（如枚举、分类数组或任何实现了string方法的对象等）
+特别地，如果迭代器是void*，将被强制转换为指向数组值类型的指针使用。
+输入matlab::data::ArrayDimensions右值引用，这意味着转换后输入对象可能不再可用。
+函数执行后，迭代器将指向最后一个元素的下一个位置。
+*/
+template<typename 迭代器>
+inline matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, 迭代器&& 输入, matlab::data::ArrayDimensions&& 各维尺寸);
+
+//将给定指针直接作为指定MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
+template<typename 输出类型>
+inline 输出类型 万能转码(数组类型转元素<输出类型>* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t<void> 自定义删除器);
+
+//将给定指针直接作为动态类型MATLAB满数组的基础数据缓冲区。数据类型必须完全匹配。必须额外指定删除器。从R2024b开始支持，之前的版本不支持。
+inline matlab::data::Array 万能转码(matlab::data::ArrayType 元素类型, void* 输入, matlab::data::ArrayDimensions&& 各维尺寸, matlab::data::buffer_deleter_t<void> 自定义删除器);
+```
+### 动态类型缓冲
+有时你不关心或无法确定运行时MATLAB数组的动态类型，只想要操作`void*`指针，可以使用动态类型缓冲。你可以将一个运行时类型枚举值和元素个数传入，获取一个动态类型的`void*`缓冲（MATLAB提供的方法必须在编译时确定类型）。向缓冲写入数据后，直接打包创建一个无类型的`Array`。反之，也可以将输入的`Array`解包为一个动态类型缓冲，取得其基础数据指针`void*`。
 ## 自动析构
 有时我们需要将C\++对象的指针、句柄或其它具有类似功能的索引返回给MATLAB。这就意味着，这个对象的生命周期被托管给了MATLAB来管理，由MATLAB决定何时析构这个对象，而无法使用传统的C\++资源管理技术。一般来说，应当在MATLAB端也为此类对象编写一个接口类，在MATLAB对象`delete`时也自动调用C\++对象的析构方法。但是，这样做并不保证安全，有两种常见情况仍会导致资源泄漏或进程崩溃：
 - 有特殊析构顺序要求的全局对象。全局对象的生命周期与MEX模块相同，一般来说MEX模块卸载时它也会自动析构。但是，有些全局对象（常见于 Windows COM）不能在DllMain卸载过程中析构。
