@@ -205,7 +205,7 @@ namespace Mex工具
 	std::unique_ptr<char16_t[], decltype(LocalFree)*> WindowsErrorMessage(int ExceptionCode)noexcept
 	{
 		LPWSTR 错误信息;
-		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, GetLastError(), MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
+		FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, ExceptionCode, MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED), (LPWSTR)&错误信息, 1, nullptr);
 		return std::unique_ptr<char16_t[], decltype(LocalFree)*>(reinterpret_cast<char16_t*>(错误信息), LocalFree);
 	}
 	std::unique_ptr<char16_t[], decltype(LocalFree)*> WindowsErrorMessage()noexcept
