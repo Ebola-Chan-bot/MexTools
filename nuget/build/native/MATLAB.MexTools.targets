@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 	<PropertyGroup>
-		
+
 		<MexTools_MatlabExtern>$([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").GetValue($([MSBuild]::Subtract($([System.IO.Directory]::GetDirectories("$(ProgramFiles)\MATLAB").Length), 1))))\extern\</MexTools_MatlabExtern>
 		<!--这句使用了.GetValue()而不是方括号索引，因为方括号索引中不能调用属性函数-->
-		
+
 		<MexTools_MatlabLib>$(MexTools_MatlabExtern)lib\win64\microsoft\</MexTools_MatlabLib>
 		<!--必须创建新属性，不能在使用后覆盖MatlabExtern。因为XML不保证运行顺序。-->
-		
+
 		<TargetExt>.mexw64</TargetExt>
-		<MexTools_Configuration>Release</MexTools_Configuration>
-		<MexTools_Configuration Condition="$(UseDebugLibraries)">Debug</MexTools_Configuration>
 	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<ClCompile>
@@ -26,7 +24,30 @@
 	</ItemDefinitionGroup>
 	<ItemDefinitionGroup>
 		<Link>
-			<AdditionalDependencies>$(MexTools_MatlabLib)libMatlabDataArray.lib;$(MexTools_MatlabLib)libmex.lib;$(MSBuildThisFileDirectory)Mex工具.$(PlatformToolsetVersion).$(MexTools_Configuration).lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>$(MexTools_MatlabLib)libMatlabDataArray.lib;$(MexTools_MatlabLib)libmex.lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
+	<ItemGroup Condition="$(ConfigurationType)=='StaticLibrary'">
+		<PropertyPageSchema Include="$(MSBuildThisFileDirectory)\链接设置.xml" />
+	</ItemGroup>
+	<Target Name="埃博拉酱_Mex工具_符号链接" BeforeTargets="Link" Condition="$(埃博拉酱_Mex工具_链接方式)=='符号' Or $(ConfigurationType)!='StaticLibrary'">
+		<PropertyGroup>
+			<!--ItemGroup不能直接捕获ClCompile的属性，因此需要在这里传递-->
+			<RuntimeLibrary>%(ClCompile.RuntimeLibrary)</RuntimeLibrary>
+		</PropertyGroup>
+		<ItemGroup>
+			<Link Update="@(Link)">
+				<AdditionalDependencies>$(MSBuildThisFileDirectory)Mex工具.$(RuntimeLibrary).$(PlatformToolsetVersion).lib;%(AdditionalDependencies)</AdditionalDependencies>
+			</Link>
+		</ItemGroup>
+	</Target>
+	<Target Name="埃博拉酱_Mex工具_内联链接" BeforeTargets="ClCompile" Condition="$(埃博拉酱_Mex工具_链接方式)=='内联'">
+		<PropertyGroup>
+			<!--ItemGroup不能直接捕获ClCompile的属性，因此需要在这里传递-->
+			<RuntimeLibrary>%(ClCompile.RuntimeLibrary)</RuntimeLibrary>
+		</PropertyGroup>
+		<ItemGroup>
+			<Library Include="$(MSBuildThisFileDirectory)Mex工具.$(RuntimeLibrary).$(PlatformToolsetVersion).lib" />
+		</ItemGroup>
+	</Target>
 </Project>

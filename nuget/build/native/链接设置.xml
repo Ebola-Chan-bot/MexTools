@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="clr-namespace:Microsoft.Build.Framework.XamlTypes;assembly=Microsoft.Build.Framework">
+	<Rule Name="埃博拉酱" PageTemplate="tool" DisplayName="链接设置" SwitchPrefix="/" Order="1">
+		<Rule.Categories>
+			<Category Name="cpp" DisplayName="Mex工具" />
+		</Rule.Categories>
+		<Rule.DataSource>
+			<DataSource Persistence="ProjectFile" ItemType="" />
+		</Rule.DataSource>
+		<EnumProperty Name="埃博拉酱_Mex工具_链接方式" DisplayName="链接方式" Category="cpp" Default="符号">
+			<EnumValue Name="符号"  DisplayName="符号" Description="仅引用本库的符号，不包含定义"/>
+			<EnumValue Name="内联" DisplayName="内联" Description="将本库的代码全部内联写入输出目标"/>
+		</EnumProperty>
+	</Rule>
+</ProjectSchemaDefinitions>
