@@ -30,7 +30,7 @@
 	<ItemGroup Condition="$(ConfigurationType)=='StaticLibrary'">
 		<PropertyPageSchema Include="$(MSBuildThisFileDirectory)\链接设置.xml" />
 	</ItemGroup>
-	<Target Name="埃博拉酱_Mex工具_符号链接" BeforeTargets="Link" Condition="$(埃博拉酱_Mex工具_链接方式)=='符号' Or $(ConfigurationType)!='StaticLibrary'">
+	<Target Name="埃博拉酱_Mex工具_符号链接" BeforeTargets="Link" Condition="$(ConfigurationType)!='StaticLibrary'">
 		<PropertyGroup>
 			<!--ItemGroup不能直接捕获ClCompile的属性，因此需要在这里传递-->
 			<RuntimeLibrary>%(ClCompile.RuntimeLibrary)</RuntimeLibrary>
