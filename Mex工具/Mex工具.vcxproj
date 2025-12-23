@@ -454,14 +454,8 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\native.magic_enum.0.9.5\build\native\native.magic_enum.targets" Condition="Exists('..\packages\native.magic_enum.0.9.5\build\native\native.magic_enum.targets')" />
+    <Import Project="..\packages\magic_enum.0.9.7\build\native\magic_enum.targets" Condition="Exists('..\packages\magic_enum.0.9.7\build\native\magic_enum.targets')" />
   </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\native.magic_enum.0.9.5\build\native\native.magic_enum.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\native.magic_enum.0.9.5\build\native\native.magic_enum.targets'))" />
-  </Target>
   <Target Name="设置程序数据库" BeforeTargets="ClCompile">
     <PropertyGroup>
       <TargetName>$(ProjectName).%(ClCompile.RuntimeLibrary).$(PlatformToolsetVersion)</TargetName>
@@ -481,5 +475,11 @@
         <OutputFile>$(TargetPath)</OutputFile>
       </Lib>
     </ItemGroup>
+  </Target>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\magic_enum.0.9.7\build\native\magic_enum.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\magic_enum.0.9.7\build\native\magic_enum.targets'))" />
   </Target>
 </Project>

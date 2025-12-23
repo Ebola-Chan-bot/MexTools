@@ -26,11 +26,26 @@ void Mex工具::清理()noexcept{}
 本工具所有高级功能都在<Mex工具.hpp\>中详述。此处作简要介绍。代码示例可参考[埃博拉酱的MATLAB扩展](https://github.com/Silver-Fang/MATLAB-Extension/tree/master/Windows%E5%B9%B3%E5%8F%B0)
 ## 异常处理
 MATLAB只能捕获`std::exception`派生的异常。将非继承自`std::exception`的异常抛出时，将丢失异常详细信息。MATLAB会将异常抛出为`MException`类型，所有异常详细信息都包含在此类型的`identifier`和`message`两个属性中。根据你的需求，本工具提供了以下异常处理方法可选：
-- `EnumThrow`。使用此方法要求你将所有可能的异常列举为一个`enum class`，并且从命名空间、类型名到枚举项名称都只能包含英文和数字，因为这些文本都会被`EnumThrow`转换为MATLAB`MException.identifier`，MATLAB要求此字段只能包含英文和数字。除此之外，`EnumThrow`还可以设置`MException.message`。
-- `ThrowLastError`。此方法检查`GetLastError()`，然后使用`FormatMessageW`将错误代码转换为文本，作为`MException.message`。你仍须向此函数输入枚举类型作为`MException.identifier`。
-- `WindowsErrorMessage`。此方法不抛出异常，只是将Windows异常码转换为UTF16文本返回。你可以将其自行处理，例如交给`EnumThrow`。此方法可以接受你自行获得的错误码（通常来自`GetLastError`或`GetExceptionCode`），也可以不指定错误码以自动`GetLastError`。
-- <cppmex/mexException.hpp\>中定义了MATLAB提供的几种异常类型，均派生自`std::exception`。你可以自行构造这些异常然后直接`throw`，比使用本工具更灵活。
-- 意外的异常。本工具提供了兜底保护机制，可以捕获大多数未被正确处理的意外异常，而不至于使MATLAB进程崩溃；但这种机制可能丢失异常详细信息，因此多数情况下您仍应有意识地妥善处理各种意外情况。但是有两种已知情况的异常无法捕获，将导致MATLAB进程崩溃：一是违反noexcept约定抛出的异常，C\++标准规定这将导致进程崩溃，无法捕获；二是在C\++标准异常处理块以外的空`throw`，同样C++标准规定这将导致进程崩溃。
+### `EnumThrow`
+使用此方法要求你将所有可能的异常列举为一个`enum class`，并且从命名空间、类型名到枚举项名称都只能包含英文和数字，因为这些文本都会被`EnumThrow`转换为MATLAB`MException.identifier`，MATLAB要求此字段只能包含英文和数字。除此之外，`EnumThrow`还可以设置`MException.message`。
+
+和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
+
+默认仅支持-128~127范围内的枚举值。如果需要支持更大范围的枚举值，请在包含本头文件之前分别定义`MAGIC_ENUM_RANGE_MIN`和`MAGIC_ENUM_RANGE_MAX`宏为所需的最小和最大枚举值范围。例如：
+```C++
+#define MAGIC_ENUM_RANGE_MIN -32768
+#define MAGIC_ENUM_RANGE_MAX 32767
+```
+### `EnumWarning`
+此方法与`EnumThrow`类似，但不抛出异常，仅发出警告。
+### `ThrowLastError`
+此方法检查`GetLastError()`，然后使用`FormatMessageW`将错误代码转换为文本，作为`MException.message`。你仍须向此函数输入枚举类型作为`MException.identifier`。
+### `WindowsErrorMessage`
+此方法不抛出异常，只是将Windows异常码转换为UTF16文本返回。你可以将其自行处理，例如交给`EnumThrow`。此方法可以接受你自行获得的错误码（通常来自`GetLastError`或`GetExceptionCode`），也可以不指定错误码以自动`GetLastError`。
+### <cppmex/mexException.hpp\>
+定义了MATLAB提供的几种异常类型，均派生自`std::exception`。你可以自行构造这些异常然后直接`throw`，比使用本工具更灵活。
+### 意外的异常
+本工具提供了兜底保护机制，可以捕获大多数未被正确处理的意外异常，而不至于使MATLAB进程崩溃；但这种机制可能丢失异常详细信息，因此多数情况下您仍应有意识地妥善处理各种意外情况。但是有两种已知情况的异常无法捕获，将导致MATLAB进程崩溃：一是违反noexcept约定抛出的异常，C\++标准规定这将导致进程崩溃，无法捕获；二是在C\++标准异常处理块以外的空`throw`，同样C++标准规定这将导致进程崩溃。
 ## 数据交换
 MEX文件函数最基本的工作就是将MATLAB数据类型转换为C++数据类型，完成处理后再转回MATLAB数据类型。提供了以下强有力的工具：
 ### 万能转码

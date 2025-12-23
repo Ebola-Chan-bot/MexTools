@@ -34,15 +34,22 @@ namespace Mex工具
 
 	//异常处理
 
-/*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将同时作为MException的identifier和message，因此只能使用英文、数字和下划线。
-MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
-用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
-和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
-*/
+	/*将任意枚举类型当作异常抛给MATLAB。枚举类型名和字面文本将同时作为MException的identifier和message，因此只能使用英文、数字和下划线。
+	MATLAB只能正确捕获std::exception及其派生类。此方法将枚举类型的异常转换为matlab::engine::MATLABException抛出，符合MATLAB捕获要求。
+	用户只应对std::exception及其派生类直接使用throw。对于其它异常类型，应使用此方法或任何其它方法将异常类型转换为std::exception及其派生类，或者自行catch并处理。如果违反这个规则，异常信息将会丢失，MATLAB只能接收到`Mex异常::Unexpected_CPP_exception`。
+	和throw一样，此方法将违反noexcept约定。异常不能从noexcept方法中向外传递，而是导致MATLAB进程崩溃。
+	默认仅支持-128~127范围内的枚举值。如果需要支持更大范围的枚举值，请在包含本头文件之前分别定义`MAGIC_ENUM_RANGE_MIN`和`MAGIC_ENUM_RANGE_MAX`宏为所需的最小和最大枚举值范围。例如：
+	#define MAGIC_ENUM_RANGE_MIN -32768
+	#define MAGIC_ENUM_RANGE_MAX 32767
+	*/
 	template<typename T>
 	[[noreturn]] void EnumThrow(T 异常);
 
-	//任意枚举类型当作警告抛给MATLAB。枚举类型名和字面文本将同时作为警告的identifier和message，因此只能使用英文、数字和下划线。警告不是异常，不会中断程序。
+	/*任意枚举类型当作警告抛给MATLAB。枚举类型名和字面文本将同时作为警告的identifier和message，因此只能使用英文、数字和下划线。警告不是异常，不会中断程序。
+	默认仅支持-128~127范围内的枚举值。如果需要支持更大范围的枚举值，请在包含本头文件之前分别定义`MAGIC_ENUM_RANGE_MIN`和`MAGIC_ENUM_RANGE_MAX`宏为所需的最小和最大枚举值范围。例如：
+	#define MAGIC_ENUM_RANGE_MIN -32768
+	#define MAGIC_ENUM_RANGE_MAX 32767
+	*/
 	template<typename T>
 	void EnumWarning(T 异常);
 }

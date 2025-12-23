@@ -1,5 +1,5 @@
 #pragma once
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum_all.hpp>
 #include <mex.hpp>
 #ifndef __MEX_IO_ADAPTER_HPP__
 //R2024a及以前，此类的定义hpp中还包含了外部链接的函数定义，会导致编译单元之间符号多次定义。所以本工具不在头文件中包含那个头文件，而是将此类定义直接拷贝过来。
